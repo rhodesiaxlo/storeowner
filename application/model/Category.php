@@ -4,18 +4,18 @@ namespace app\model;
 use think\Model;
 use think\Db;
 
-class User extends Model
+class  Category extends Model
 {
 	protected $pk = 'uid';
-	protected $table="pos_user";
+	protected $table="pos_category";
 
 	/**
 	 * 获取所有用户
 	 * @return [type] [description]
 	 */
-	public function getUsers()
+	public static function getAllCategories()
 	{
-		$list = Db::name('user')->where('id','>',0)->select();
+		$list = self::where(1)->select();
 		return $list;
 	}
 }

@@ -2,15 +2,57 @@
 namespace app\api\controller;
 
 use app\model\User;
-use think\config;
+use app\model\Category;
+use app\model\Goods;
+use app\model\Order;
+use app\model\ShiftLog;
 
-class Index
+use think\config;
+use  think\Request;
+
+class Index extends BaseController
 {
 
+    private $token = "";
+    private $store_code = "";
+    private $record_no = "";
+    private $page_no = "";
+
+    /**
+     * 检查登录状态
+     * 记录  token
+     *       store_code
+     *       page_no
+     *       record_no
+     */
 	public function __construct()
 	{
-		// check if already login, if not ,return errror
-		// if does, save login data into session
+        $token = Request::instance()->param("token");
+
+        // 参数缺失
+        if(empty($token))
+        {
+            // 报错
+            $this->ajaxFail("token parameter can not be empty", 1000, []);
+        }
+
+        $this->token = $token;
+
+        // 没登录，请先登录
+        $ret = User::checkToken($token);
+        if( $ret < 0)
+        {
+            // 不存在 1002
+            // 查询报错 1003
+            // 被冻结 1004
+            $this->ajaxFail("you are not authorized, please login in", abs($ret), []);
+        }
+
+        $info = User::getStoreByToken($token);
+        $this->store_code = $info->store_code;
+
+        $this->record_no = Request::instance()->param("record_no");
+        $this->page_no = Request::instance()->param("page_no");
 	}
 
 	/**
@@ -19,29 +61,20 @@ class Index
 	 */
 	public function logout()
 	{
-    	return $this->ajaxFail('not implement yet', [], 1000);
+    	$token = Request::instance()->param("token");
+        $ret = User::logout($token);
+
+        if($ret === false)
+        {
+            return $this->ajaxFail("failed", [], 1000);
+        }
+
+        return $this->ajaxSuccess('success', []);
+
 	}
 
     public function index()
     {
-        $user = new User();
-        exit(json_encode($user->getUsers()));
-    }
-
-    public function test()
-    {
-    	echo "is_product = ".config::get('is_product')."<br/>";
-    	echo "host = ".config::get('database.hostname')."<br/>";
-
-    }
-
-    /**
-     * 登录接口
-     * @return [type] [description]
-     */
-    public function login()
-    {
-    	return $this->ajaxFail('login faile', [], 1000);
     }
 
     /**
@@ -113,7 +146,13 @@ class Index
      */
     public function getOrderList()
     {
-    	return $this->ajaxFail('not implement yet', [], 1000);
+        $this->checkPageNoRecordNo();
+
+        $list = Order::getAllOrdersByStorecode($this->store_code, $this->record_no, $this->page_no);
+
+        $tmp = [];
+        $tmp[] = $list;
+        return $this->ajaxSuccess('get order list success', $tmp);
     }
 
     /**
@@ -122,7 +161,13 @@ class Index
      */
     public function getShiftRecord()
     {
-    	return $this->ajaxFail('not implement yet', [], 1000);
+        $this->checkPageNoRecordNo();
+
+        $list = ShiftLog::getShiftLogByStoreCode($this->store_code, $this->record_no, $this->page_no);
+    	
+        $tmp = [];
+        $tmp[] = $list;
+        return $this->ajaxSuccess("get shift record success", $tmp);
     }
 
     public function dailyRecord()
@@ -145,7 +190,13 @@ class Index
      */
     public function getGoodsList()
     {
-    	return $this->ajaxFail('not implement yet', [], 1000);
+        $this->checkPageNoRecordNo();
+
+    	$list = Goods::getAllGoodsByStorecode($this->store_code, $this->record_no, $this->page_no);
+
+        $tmp = [];
+        $tmp[] = $list;
+        return $this->ajaxSuccess('get goods list success', $tmp);
     }
 
     /**
@@ -164,7 +215,11 @@ class Index
      */
     public function getCategoryList()
     {
-    	return $this->ajaxFail('not implement yet', [], 1000);
+    	$list = Category::getAllCategories();
+
+        $tmp = [];
+        $tmp[] = $list;
+        $this->ajaxSuccess("success", $tmp);
     }
 
     /**
@@ -217,7 +272,19 @@ class Index
      */
     public function staffList()
     {
-    	return $this->ajaxFail('not implement yet', [], 1000);
+        $this->checkPageNoRecordNo();
+
+
+    	$list = User::getStaffByStoken($this->token, $this->record_no, $this->page_no);
+
+        if($list === false || $list == null)
+        {
+            return $this->ajaxFail("query failed", [], 1000);
+        }
+
+        $tmp = [];
+        $tmp[] = $list;
+        return $this->ajaxSuccess('get staff success', $tmp);
     }
 
     /**
@@ -281,13 +348,19 @@ class Index
      */
     public function User()
     {
-    	return $this->ajaxFail('not implement yet', [], 1000);
+        $token = Request::instance()->param("token");
+        $info = User::getStoreByToken($token);
+
+        if($info === false || $info == null)
+        {
+            return $this->ajaxFail("store not found", [], 1002);
+        }
+
+        $tmp = [];
+        $tmp[] = $info;
+    	
+        return $this->ajaxSuccess('success', $tmp);
     }
-
-
-
-
-
 
 
     /**
@@ -299,29 +372,18 @@ class Index
 
     }
 
-    public function jsonTest()
+    private function  checkPageNoRecordNo()
     {
-    	return $this->ajaxFail('fail', [], 1000);
+        if(empty($this->record_no))
+        {
+            return $this->ajaxFail("record_no field can not be empty", [], 3000);
+        }
+
+        if(empty($this->page_no))
+        {
+            return $this->ajaxFail("page_no field can not be empty", [], 3001);
+        }
     }
 
-    public function ajaxFail($message, $data, $error_code)
-    {
-		$this->returnJson($message, 0, $error_code, $data);
-    }
-
-    public function ajaxSuccess($message, $data)
-    {
-    	$this->returnJson($message, 1, 0, $data);
-    }
-
-    public function returnJson($message='success', $code='1', $error_code='0', $data=[])
-    {
-    	$return = [];
-    	$return['code'] = $code;
-    	$return['error_code'] = $error_code;
-    	$return['message'] = $message;
-    	$return['data'] = $data;
-    	exit(json_encode($return));
-    }
 
 }
