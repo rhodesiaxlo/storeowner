@@ -31,10 +31,21 @@ class Login extends BaseController
 		// 模型登录，返回token 信息
 		$is_exist = User::login($name, $password);
 
+		if(gettype($is_exist) !="object")
+		{
+			if(intval($is_exist)!==false)
+			{
+				if(intval($is_exist) === 1000)
+				{
+					$this->ajaxFail('account error , more than one accout with the same name and password were found!!', [], 9999);
+				}
+			}
+		}
+
 		// 不存在
 		if($is_exist === false || $is_exist == null)
 		{
-			$this->ajaxFail('store info not found', [], 1000);
+			$this->ajaxFail('name and password conbination incorrect', [], 1000);
 			return;
 		}
 
@@ -46,7 +57,9 @@ class Login extends BaseController
 		}
 
 		$tmp = [];
-		$tmp[] = $is_exist;
+		$res = [];
+		$res['token'] = $is_exist->token;
+		$tmp[] = $res;
 		$this->ajaxSuccess("login success", $tmp);
 
 

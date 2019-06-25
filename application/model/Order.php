@@ -2,18 +2,239 @@
 namespace app\model;
 
 use think\Model;
+use app\model\Member;
 use think\Db;
 
 class Order extends Model
 {
 	protected $pk = 'uid';
 	protected $table="pos_order";
+	protected $createTime = false;
 
-	public static function getAllOrdersByStorecode($code, $record_no, $page_no)
+	public static function getAllOrdersByStorecode($code, $record_no, $page_no, $start_date, $end_date, $order_sn, $cashier_id, $payment_way)
 	{
-		$list = self::where(['store_code'=>$code, 'deleted'=>0])->limit(($page_no-1)*$record_no, $record_no)->select();
-		return $list;
+		$where = [];
+		$where['store_code'] = $code;
+		$where['deleted'] = 0;
+
+		if(!empty($start_date) && !empty($end_date))
+		{
+			$where['create_time'] = ["between",strval(strtotime($start_date)*1000).",".strval(strtotime($end_date))*1000];
+		}
+
+		if(!empty($order_sn))
+		{
+			$where['order_sn'] = ["like", "%{$order_sn}%"];	
+		}
+
+		if(!is_null($payment_way)&&intval($payment_way)!==false)
+		{
+			// 微信
+			if(intval($payment_way) == 11)
+			{
+				$where['pay_type'] = 1;
+			}
+
+			// 支付宝
+			if(intval($payment_way) == 21)
+			{
+				$where['pay_type'] = 2;
+			}
+
+			// 微信
+			if(intval($payment_way) == 31)
+			{
+				$where['pay_type'] = 3;
+			}
+
+			if(intval($payment_way) == 41)
+			{
+				$where['pay_type'] = 0;
+			}
+		}
+
+		if(!is_null($cashier_id)&&intval($cashier_id)!==false)
+		{
+			$where['uid'] = $cashier_id;
+		}
+
+		$list = self::where($where)->limit(($page_no-1)*$record_no, $record_no)->select();
+		$total = self::where($where)->count();
+		return [$list, $total];
 	}
+
+	/**
+	 * 退货单数和金额
+	 * @return [type] [description]
+	 */
+	public static function refundOrder()
+	{
+
+	}
+
+	/**
+	 * 获取营业收入，如果没有 start_date end_date 取 空  total_revenue  
+	 * 返回  
+	 * @param  [type] $start_date [description]
+	 * @param  [type] $end_date   [description]
+	 * @return [type]             [description]
+	 */
+	public static function revenue($code, $start_date=null, $end_date=null)
+	{
+
+		if($start_date == null && $end_date == null)
+		{
+			$start_date = date("Y-m-d 0:0:0", time());
+			$end_date = date("Y-m-d 23:59:59", time());
+		}
+
+		// 已完成
+		$where = [];
+		$where['store_code'] = $code;
+		$where['status'] = 1; // 已完成
+		$where['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+
+
+
+		// 已退款
+		$where2 = [];
+		$where2['store_code'] = $code;
+		$where2['status'] = 3; // 已完成
+		$where2['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+
+		// 散客
+		$where_non_member = [];
+		$where_non_member['store_code'] = $code;
+		$where_non_member['status'] = 1; // 已完成
+		$where_non_member['mid'] = 0; // 已完成
+		$where_non_member['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+
+		// 会员
+		$where_member = [];
+		$where_member['store_code'] = $code;
+		$where_member['status'] = 1; // 已完成
+		$where_member['mid'] = array('gt',0); // 已完成
+		$where_member['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+
+		// 获取指定日期的金额
+		$finished = self::where($where)->sum('receivable_price');
+		$refund = self::where($where2)->sum('receivable_price');
+		$refund_no = self::where($where2)->count();
+
+		// 计算优惠金额
+		$where_discount = [];
+		$where_discount['store_code'] = $code;
+		$where_discount['status'] = 1; // 已完成
+		$where_discount['discounts_price'] = array('neq', "0"); // 已完成
+
+		$non_member_order_no = self::where($where_non_member)->count();
+		$member_order_no = self::where($where_member)->count();
+
+		$discount_total = self::where($where_discount)->sum('discounts_price');
+		$discount_order_no = self::where($where_discount)->count();
+		
+
+		return [$finished, $refund, $refund_no, $non_member_order_no, $member_order_no, $discount_total, $discount_order_no];
+	}
+
+	public static function getTodayRevenue($code)
+	{
+
+	}
+
+	public static function MemberRevenue($code, $start_date=null, $end_date=null)
+	{
+
+		if($start_date == null && $end_date == null)
+		{
+			$start_date = date("Y-m-d 0:0:0", time());
+			$end_date = date("Y-m-d 23:59:59", time());
+		}
+
+		$where_new_member = [];
+		$where_new_member['store_code'] = $code;
+
+		$where_new_member['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		$new_member_id_list = Member::where($where_new_member)->field("id")->select();
+		$id_list = array_column($new_member_id_list, "id");
+
+
+
+		$s = strtotime($start_date)*1000;
+		$d = strtotime($end_date)*1000;
+		$sql = "select * from pos_member where store_code='{$code}' and create_time < '{$s}' and create_time > '{$d}' ";
+		$old_member_id_list = Member::query($sql);
+
+		$new_member_count = count($id_list);
+
+
+
+		// 新会员
+		$where_new_member = [];
+		$where_new_member['store_code'] = $code;
+		$where_new_member['status'] = 1; // 已完成
+		$where_new_member['mid'] = array("in", $id_list);
+		$where_new_member['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+
+		$id_list[] = 0;
+		// 老会员
+		$where_old_member = [];
+		$where_old_member['store_code'] = $code;
+		$where_old_member['status'] = 1; // 已完成
+		$where_old_member['mid'] = array("not in", $id_list);
+		$where_old_member['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+
+		// 获取指定日期的金额
+		$new_member_order_sum = self::where($where_new_member)->sum('receivable_price');
+		$old_member_order_sum = self::where($where_old_member)->sum('receivable_price');
+
+		$new_member_order_number = self::where($where_new_member)->count();
+		$old_member_order_number = self::where($where_old_member)->count();
+
+
+
+		$old_member_count = sizeof($old_member_id_list);
+
+
+		return [$new_member_count, $old_member_count, $new_member_order_sum, $old_member_order_sum, $new_member_order_number, $old_member_order_number];
+	}
+
+
+	public static function OrderDis($code, $start_date=null, $end_date=null, $min, $max, $num)
+	{
+		$step = ($max-$min)/$num;
+
+		$where['store_code'] = $code;
+		$where['status'] = 1;
+		$where['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		$total_order_num = self::where($where)->count();
+
+		$ret = [];
+		$starter = $min;
+		$end = $min;
+		while($end < $max)
+		{
+
+			$starter = $end;
+			$end += $step;
+			$tmp['range'] = strval(intval($starter)).'--'.strval(intval($end));
+			
+			$where['receivable_price'] = ['between',strval($starter).",".strval($end)];
+			$tmp['count'] = self::where($where)->count();
+
+			$ret[] = $tmp;
+		}
+
+
+		$my['total'] = $total_order_num;
+		$my['data_list'] = $ret;
+
+		return [$my, 1];
+	}
+
+
+
+
 
 }
 

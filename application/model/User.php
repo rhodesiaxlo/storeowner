@@ -6,7 +6,7 @@ use think\Db;
 
 class User extends Model
 {
-	protected $pk = 'uid';
+	protected $pk = 'local_id';
 	protected $table="pos_user";
 
 	/**
@@ -28,7 +28,13 @@ class User extends Model
 	public static function login($name, $password)
 	{
 
-		$is_exist = self::where(['uname'=>$name, 'password'=>$password, 'rank'=>0])->find();
+		$is_only = self::where(['uname'=>$name, 'password'=>$password])->select();
+		if(is_array($is_only)&&sizeof($is_only)>1)
+		{
+			// 多个用户名重复
+			return 1000;
+		}
+		$is_exist = self::where(['uname'=>$name, 'password'=>$password ])->find();
 		if($is_exist!==false&&$is_exist!=null&&empty($is_exist->token))
 		{
 			self::where(['uname'=>$name, 'password'=>$password, 'rank'=>0])->update(['token'=>$is_exist->store_code]);
@@ -89,6 +95,26 @@ class User extends Model
 	public static function getStoreByToken($token)
 	{
 		$info = self::where(['token'=>$token,'rank'=>0])->find();
+
+		// 库存总数
+		// 库存不足数
+		// 商品数量
+		$goods_num = db('goods')
+		   ->where(['store_code'=>$info->store_code])
+		   ->count();
+
+		$repertory_sum = db('goods')
+		   ->where(['store_code'=>$info->store_code])
+		   ->sum('repertory');
+
+		$sql="select count(*) as num from pos_goods where store_code='{$info->store_code}' and repertory<repertory_caution";
+		$repertory_warning = self::query($sql);
+
+		$info['goods_num'] = $goods_num;
+		$info['repertory_sum'] = $repertory_sum;
+		$info['repertory_warning'] = $repertory_warning[0]['num'];
+
+
 		return $info;
 	}
 
@@ -97,7 +123,7 @@ class User extends Model
 	 * @param  [type] $token [description]
 	 * @return [type]        [description]
 	 */
-	public static function getStaffByStoken($token, $record_no, $page_no)
+	public static function getStaffByStoken($token, $record_no, $page_no, $name, $status)
 	{
 		$info = self::where(['token'=>$token])->find();
 		if($info == null || $info === false)
@@ -105,10 +131,32 @@ class User extends Model
 			return false;
 		}
 
-		$store_code = $info->store_code;
+		$where = [];
+		$where['store_code'] = $info->store_code;
+		if(!empty($name))
+		{
+			$where['uname'] = $name;
+		}
 
-		$list = self::where(['store_code'=>$store_code])->limit(($page_no-1)*$record_no, $record_no)->select();
-		return $list;
+		if(!empty($status))
+		{
+			if(intval($status)!==false)
+			{
+				$where['is_active'] = $status;
+			}	
+		}
+
+		$where['deleted'] = 0;
+
+		$list = self::where($where)->limit(($page_no-1)*$record_no, $record_no)->select();
+		$total_number = self::where($where)->count();
+
+		return [$list, $total_number];
+	}
+
+	public static function getStoreCodeList()
+	{
+		return self::where(['rank'=>0])->field('store_code')->select();
 	}
 
 
