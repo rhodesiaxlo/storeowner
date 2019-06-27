@@ -34,12 +34,14 @@ class User extends Model
 			// 多个用户名重复
 			return 1000;
 		}
+
 		$is_exist = self::where(['uname'=>$name, 'password'=>$password ])->find();
 		if($is_exist!==false&&$is_exist!=null&&empty($is_exist->token))
 		{
-			self::where(['uname'=>$name, 'password'=>$password, 'rank'=>0])->update(['token'=>$is_exist->store_code]);
+			self::where(['uname'=>$name, 'password'=>$password])->update(['token'=>$is_exist->store_code]);
 		}
-		$is_exist = self::where(['uname'=>$name, 'password'=>$password, 'rank'=>0])->find();
+
+		$is_exist = self::where(['uname'=>$name, 'password'=>$password])->find();
 		return $is_exist;
 	}
 
@@ -94,7 +96,7 @@ class User extends Model
 	 */
 	public static function getStoreByToken($token)
 	{
-		$info = self::where(['token'=>$token,'rank'=>0])->find();
+		$info = self::where(['token'=>$token])->find();
 
 		// 库存总数
 		// 库存不足数
