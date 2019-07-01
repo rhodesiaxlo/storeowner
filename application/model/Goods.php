@@ -36,7 +36,7 @@ class Goods extends Model
 			$where['goods_name'] = array("like", "%".$goods_name."%");
 		}
 
-		if($is_forsale==0||$is_forsale==1)
+		if(is_numeric($is_forsale))
 		{
 			$where['is_forsale'] = $is_forsale;
 		}
@@ -49,7 +49,6 @@ class Goods extends Model
 		$where['deleted'] = 0;
 
 		
-
 		$list = self::where($where)->limit(($page_no-1)*$record_no, $record_no)->select();
 		$total_number = self::where($where)->count();
 		return [$list, $total_number];
