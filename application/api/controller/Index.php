@@ -1047,6 +1047,23 @@ class Index extends BaseController
     }
 
     /**
+     * 库存切片定时任务，每天晚10:00pm 后，每5分执行一次
+     * @return [type] [description]
+     */
+    public function cronMinAfterTenPm()
+    {
+        $ret = GoodsSnap::cronJob();
+        //
+        if($ret === false)
+        {
+
+        } else {
+            return $this->ajaxSuccess(" success", []);
+        }
+
+    }
+
+    /**
      * 定时任务，每10分钟执行，计算每一个小时的订单统计信息
      * 
      * @return [type] [description]
@@ -1186,7 +1203,6 @@ class Index extends BaseController
             // 保存文件，读取文件
             $tag = "file";
             $local_id = Request::instance()->param("local_id");
-            exit(json_encode($_FILES));
             if(empty($_FILES['file']))
             {
                 return $this->ajaxFail('excel file not found', [], 1000);
@@ -1208,10 +1224,11 @@ class Index extends BaseController
             }
 
             $new_file = date('Ymd').time().rand(10,99999).'.'.$ext;
-            $uploadfile = './excel/' .$new_file;
+            $uploadfile = './static/excel/' .$new_file;
             // 保存文件名
             if (move_uploaded_file($_FILES[$tag]['tmp_name'], $uploadfile)) {
               // return response()->json(['code'=>1, 'error_code'=>0, 'message'=>'success', 'data'=>['image_path'=>"http://{$_SERVER['HTTP_HOST']}/img/{$new_file}"]]);
+                
                 $this->importExcel($uploadfile, $local_id);
             } else {
               return $this->ajaxFail('upload failed', [], 1003);
@@ -1234,10 +1251,10 @@ class Index extends BaseController
      */
     private function importExcel($path, $store_id)
     {
-        $store_info = User::where(['local_id'=>$store_id])->first();
+        $store_info = User::where(['token'=>$this->token])->find();
         if(is_null($store_info))
         {
-            // 店铺信息不存在，报错
+            return $this->ajaxFail("store not found", [], 2004);
         }
 
         // 数据开始行
