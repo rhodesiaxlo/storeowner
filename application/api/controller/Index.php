@@ -16,7 +16,9 @@ use app\model\Bank;
 use app\model\Region;
 use app\model\ConsumePerOrder;
 use think\Db;
-
+use Box\Spout\Reader\ReaderFactory;
+use Box\Spout\Reader\Common\Creator\ReaderEntityFactory;
+use Box\Spout\Common\Type;
 
 use think\config;
 use  think\Request;
@@ -1274,12 +1276,12 @@ class Index extends BaseController
         $message = [];
         $error_num  = 0;
         
-        $reader = ReaderFactory::create(Type::XLSX); // for XLSX files
-
+        // $reader = ReaderFactory::create(Type::XLSX); // for XLSX files
+        $reader = ReaderEntityFactory::createXLSXReader();
         $reader->open($path);
 
 
-        $catlist = Category::all('name');
+        $catlist = Category::where(1)->field('name')->select();
         $tmplist = [];
         foreach ($catlist as $key => $value) {
             $tmplist[] = $value->name;
@@ -1305,13 +1307,16 @@ class Index extends BaseController
                 $total +=1;
 
                 $cur += 1;
-                if($cur < 4)
+                if($cur < 7)
                 {
                     // 前三行为模板内容
                     continue;
                 }
 
+                
+
                 // 校验数据 碰到空行，跳出循环
+                exit(json_encode($row).'31234');
                 if(empty($row[1]) && empty($row[2]) && empty($row[3]))
                 {
                     break;
@@ -1441,9 +1446,11 @@ class Index extends BaseController
         $total -=3;
         if(empty($message))
         {
-            exit(json_encode(['code'=>1,'message'=>"success 共处理 {$total} 条，新增 {$create_num} 条， 更新 {$update_num} 条, 出错 {$error_num} 条"]));
+
+            return $this->ajaxSuccess("success success 共处理 {$total} 条，新增 {$create_num} 条， 更新 {$update_num} 条, 出错 {$error_num} 条", $ret);
+
         } else {
-            exit(json_encode(['code'=>0,'message'=>"共处理 {$total} 条，新增 {$create_num} 条， 更新 {$update_num} 条, 出错 {$error_num} 条", 'data' => $message]));
+            return $this->ajaxFail("fail  共处理 {$total} 条，新增 {$create_num} 条， 更新 {$update_num} 条, 出错 {$error_num} 条", [], 1004);
         }
         // 返回结果
     }
