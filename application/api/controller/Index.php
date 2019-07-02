@@ -1230,8 +1230,8 @@ class Index extends BaseController
             // 保存文件名
             if (move_uploaded_file($_FILES[$tag]['tmp_name'], $uploadfile)) {
               // return response()->json(['code'=>1, 'error_code'=>0, 'message'=>'success', 'data'=>['image_path'=>"http://{$_SERVER['HTTP_HOST']}/img/{$new_file}"]]);
-                
-                $this->importExcel($uploadfile, $local_id);
+                $userinfo =User::getStoreByToken($this->token);
+                $this->importExcel($uploadfile, $userinfo->local_id);
             } else {
               return $this->ajaxFail('upload failed', [], 1003);
             }
@@ -1276,8 +1276,8 @@ class Index extends BaseController
         $message = [];
         $error_num  = 0;
         
-        // $reader = ReaderFactory::create(Type::XLSX); // for XLSX files
-        $reader = ReaderEntityFactory::createXLSXReader();
+        $reader = ReaderFactory::create(Type::XLSX); // for XLSX files
+        //$reader = ReaderEntityFactory::createXLSXReader();
         $reader->open($path);
 
 
@@ -1301,22 +1301,21 @@ class Index extends BaseController
                 // 返回
             }
 
+
             $cur = 0;
             foreach ($sheet->getRowIterator() as $row) {
                 // 统计信息
                 $total +=1;
 
                 $cur += 1;
-                if($cur < 7)
+                if($cur < 4)
                 {
                     // 前三行为模板内容
                     continue;
                 }
 
-                
 
                 // 校验数据 碰到空行，跳出循环
-                exit(json_encode($row).'31234');
                 if(empty($row[1]) && empty($row[2]) && empty($row[3]))
                 {
                     break;
@@ -1332,7 +1331,7 @@ class Index extends BaseController
                 }else {
                 
                     // 写入数据
-                    $is_exist = GoodsImport::where(['goods_sn'=>$row[2],'user_id'=>$store_id])->first();
+                    $is_exist = GoodsImport::where(['goods_sn'=>$row[2],'user_id'=>$store_id])->find();
 
                     $this->insertGoodsIfStoreGoodsEmpty($store_info->store_code, $row, $store_id, $store_info, $abc);
 
@@ -1466,7 +1465,7 @@ class Index extends BaseController
         $row_num +=1;
 
         $message = "";
-        $catlist = Category::all('name');
+        $catlist = Category::where(1)->field('name')->select();
         $tmplist = [];
         foreach ($catlist as $key => $value) {
             $tmplist[] = $value->name;
@@ -1621,7 +1620,7 @@ class Index extends BaseController
     private function insertGoodsIfStoreGoodsEmpty($store_code, $row, $store_id, $store_info, $abc)
     {
         // 
-        $is_exist = User::where(['store_code' => $store_code])->first();
+        $is_exist = User::where(['store_code' => $store_code])->find();
 
         if(is_null($is_exist))
             return;
@@ -1635,7 +1634,7 @@ class Index extends BaseController
         // $goods_exist = Goods::where(['store_code'=>$store_code])->first();
         // if(!is_null($goods_exist))
         //  return;
-        $goods_info = Goods::where(['store_code'=>$store_code, 'goods_sn' => $row[2]])->first();
+        $goods_info = Goods::where(['store_code'=>$store_code, 'goods_sn' => $row[2]])->find();
         if(!is_null($goods_info))
         {
             // 存在 更新
@@ -1725,7 +1724,7 @@ class Index extends BaseController
 
             $create_rest = $new_rec->save();
 
-            $up = Goods::where(['store_code' => $store_info->store_code, 'id'=>1000])->first();
+            $up = Goods::where(['store_code' => $store_info->store_code, 'id'=>1000])->find();
             if(!is_null($up))
             {
                 $up->id = $up->local_id;
