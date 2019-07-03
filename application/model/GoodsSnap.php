@@ -30,7 +30,30 @@ class GoodsSnap extends Model
 		$is_exist = self::where($where)->find();
 		if(is_null($is_exist))
 		{
-			return self::currentLy($store_code, date("Y-m-d 0:0:0", time()));
+			// 获取当前的
+			
+			$where['store_code'] = $store_code;
+			$where['is_forsale'] = 1;
+
+			$on_shelf = Goods::where($where)->count();
+
+
+			$off_where['store_code'] = $store_code;
+			$off_where['is_forsale'] = 0;
+
+			$off_shelf = Goods::where($off_where)->count();
+
+
+			$inv_where['store_code'] = $store_code;
+			$total_inv = Goods::where($inv_where)->sum('repertory');
+
+
+			$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code',['code'=>$store_code]);
+
+			return [$on_shelf, $off_shelf, $total_inv, $warning];
+
+
+			// return self::currentLy($store_code, date("Y-m-d 0:0:0", time()));
 		} else {
 			return [$is_exist->on_shelf, $is_exist->off_shelf, $is_exist->total_inven, $is_exist->warning_num];
 		}
