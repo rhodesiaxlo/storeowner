@@ -53,10 +53,11 @@ class Order extends Model
 			}
 		}
 
-		if(!is_null($cashier_id)&&intval($cashier_id)!==false)
+		if(!is_null($cashier_id)&&intval($cashier_id)!==false&&is_numeric($cashier_id))
 		{
 			$where['uid'] = $cashier_id;
 		}
+
 
 		$list = self::where($where)->limit(($page_no-1)*$record_no, $record_no)->select();
 		$total = self::where($where)->count();
@@ -69,7 +70,14 @@ class Order extends Model
 	 */
 	public static function refundOrder()
 	{
-
+			$money_list = db('order')->alias("o")
+					   ->join("pos_user u", "o.uid=u.id and o.store_code=o.store_code")
+					   ->field("o.*, u.realname")
+					   ->where($where)
+					   ->group('cat.id')
+					   // 这里有问题，不能用金额排序，加上这段就报错
+					   ->order('revenue','desc')
+					   ->select();
 	}
 
 	/**
@@ -82,6 +90,7 @@ class Order extends Model
 	public static function revenue($code, $start_date=null, $end_date=null)
 	{
 
+		//exit("start date = {$start_date}  end date = {$end_date}");
 		if($start_date == null && $end_date == null)
 		{
 			$start_date = date("Y-m-d 0:0:0", time());
@@ -139,6 +148,77 @@ class Order extends Model
 
 	public static function getTodayRevenue($code)
 	{
+
+	}
+
+	/**
+	 * 收银员业绩
+	 * @param  [type] $code       [description]
+	 * @param  [type] $record_no  [description]
+	 * @param  [type] $page_no    [description]
+	 * @param  [type] $start_date [description]
+	 * @param  [type] $end_date   [description]
+	 * @param  [type] $staff_id   [description]
+	 * @return [type]             [description]
+	 */
+	public static function getShiftOrder($code, $record_no, $page_no, $start_date, $end_date, $staff_id=null)
+	{
+		if(!empty($code))
+		{
+			$where['o.store_code'] = $code;
+		}
+
+		if(is_numeric($staff_id))
+		{
+			$where['o.uid'] = $staff_id;
+		}
+
+		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
+		{
+			$where['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		}
+
+
+		$money_list = db('order')->alias("o")
+			->join("pos_user u", "u.id=o.uid and o.store_code=u.store_code")
+			->field("o.*, u.realname, u.id as u_id, 0 as wechat, 0 as alibaba, 0 as unipay, 0 as cash")
+			->where($where)
+			// 这里有问题，不能用金额排序，加上这段就报错
+			->limit(($page_no-1)*$record_no, $record_no)
+			->select();
+
+		foreach ($money_list as $key => $value) {
+			if($value['pay_type']==0)
+			{
+				// 现金
+				$money_list[$key]['cash'] = $money_list[$key]['receivable_price'];
+			}
+
+
+			if($value['pay_type']==1)
+			{
+				// 现金
+				$money_list[$key]['wechat'] = $money_list[$key]['receivable_price'];
+			}
+
+			if($value['pay_type']==2)
+			{
+				// 现金
+				$money_list[$key]['alibaba'] = $money_list[$key]['receivable_price'];
+			}
+
+			if($value['pay_type']==3)
+			{
+				// 现金
+				$money_list[$key]['unipay'] = $money_list[$key]['receivable_price'];
+			}
+
+
+		}
+
+		$count = sizeof($money_list);
+
+		return [$money_list, $count];
 
 	}
 
@@ -219,7 +299,7 @@ class Order extends Model
 			$end += $step;
 			$tmp['range'] = strval(intval($starter)).'--'.strval(intval($end));
 			
-			$where['receivable_price'] = ['between',strval($starter).",".strval($end)];
+			$where['receivable_price'] = ['between',strval($starter).",".strval($end-1)];
 			$tmp['count'] = self::where($where)->count();
 
 			$ret[] = $tmp;

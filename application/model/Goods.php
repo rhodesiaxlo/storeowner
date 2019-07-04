@@ -48,7 +48,6 @@ class Goods extends Model
 
 		$where['deleted'] = 0;
 
-		
 		$list = self::where($where)->limit(($page_no-1)*$record_no, $record_no)->select();
 		$total_number = self::where($where)->count();
 		return [$list, $total_number];
@@ -59,7 +58,7 @@ class Goods extends Model
 		$where = [];
 		$where['store_code'] = $store_code;
 
-		if(!is_null($cat_id))
+		if(!is_null($cat_id)&&intval($cat_id)!=1000)
 		{
 			if(intval($cat_id)!==false&&intval($cat_id)>0)
 			{
@@ -77,7 +76,7 @@ class Goods extends Model
 			$where['goods_sn'] = array("like", "%".$goods_sn."%");;
 		}
 
-		if(!is_null($is_forsale))
+		if(!is_null($is_forsale)&&intval($is_forsale)!=1000)
 		{
 			$where['is_forsale'] = $is_forsale;;
 		}

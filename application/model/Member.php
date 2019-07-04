@@ -37,7 +37,19 @@ class Member extends Model
 	 */
 	public static function memStatic($store_code, $start_date, $end_date)
 	{
-		return [100,12,3];
+		$code = $store_code;
+		// ($old_member_no, $new_member_no, $new_member_order_no)
+		$where['store_code'] = $code;
+		$where['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		$new = 	self::where($where)->count();
+		$all = 	self::where(['store_code'=>$code])->count();
+
+		$new_list = self::where($where)->field('id')->select();
+		$id_list = array_column($new_list, 'id');
+
+		$order_num = Order::where(['store_code'=>$store_code,'status'=>1, 'mid'=>array('in', $id_list)])->count();
+		
+		return [$all-$new,$new,$order_num];
 	}
 
 	public static function newMemberAndOldMember($code, $start_date=null, $end_date=null)

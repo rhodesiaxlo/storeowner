@@ -3,6 +3,7 @@ namespace app\model;
 
 use think\Model;
 use think\Db;
+use app\model\Order;
 
 class OrderGoods extends Model
 {
@@ -26,22 +27,23 @@ class OrderGoods extends Model
 
 
 
-		$money_list = db('order')->alias("o")
-						   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
+		$money_list = db('order_goods')->alias("g")
+						   ->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
 						   ->field("g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time,sum(g.subtotal_price) as goods_total_price")
 						   ->where($where)
 						   ->group('g.goods_sn')
 						 ->order("goods_total_price", "desc")
 						   ->select();
 
-		$no_list = db('order')->alias("o")
-				   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
+
+
+		$no_list = db('order_goods')->alias("g")
+				   ->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
 				   ->field("g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time,sum(g.goods_num) as goods_total_no")
 				   ->where($where)
 				   ->group('g.goods_sn')
 				   ->order("goods_total_no", "desc")
 				   ->select();
-		
 		
 		return [$money_list, $no_list];
 	}
@@ -55,8 +57,8 @@ class OrderGoods extends Model
 
 		if(intval($is_order_by_money)>0)
 		{
-			$money_list = db('order')->alias("o")
-					   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
+			$money_list = db('order_goods')->alias("g")
+					   ->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
 					   ->join("pos_goods g2", "g2.store_code=g.store_code and g2.goods_sn=g.goods_sn")
 					   ->join("pos_category cat", "cat.id=g2.cat_id")
 					   //->field("g2.cat_id,g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time")
@@ -68,8 +70,8 @@ class OrderGoods extends Model
 					   ->select();
 
 		} else {
-			$money_list = db('order')->alias("o")
-					   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
+			$money_list = db('order_goods')->alias("g")
+					   ->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
 					   ->join("pos_goods g2", "g2.store_code=g.store_code and g2.goods_sn=g.goods_sn")
 					   ->join("pos_category cat", "cat.id=g2.cat_id")
 					   //->field("g2.cat_id,g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time")
@@ -658,24 +660,32 @@ class OrderGoods extends Model
 		 		$new_14[$key3]['future_goods_number_7'] = 0;
 		 	} else {
 		 		// 存在，比销量
-		 		$new_14[$key3]['future_goods_number_7'] = -1;
+		 		
+		 		$new_14[$key3]['future_goods_number_7'] = $new[$key3]['goods_number'];
 		 	}
 		 }
 
-		$total_number = sizeof($new_14);
+		
 		$indic = 0;
 		$return = [];
 		foreach ($new_14 as $key4 => $value4) {
-			$indic +=1;
-			if(($indic > ($page_no-1)*$record_no) && ($indic <= ($page_no)*$record_no))
+
+			if($new_14[$key4]['goods_number']<$new_14[$key4]['future_goods_number_7'])
 			{
-				// 输出所有记录
-				$return[] = $value4;
+
+
+				$indic +=1;
+				if(($indic > ($page_no-1)*$record_no) && ($indic <= ($page_no)*$record_no))
+				{
+					// 输出所有记录
+					$return[] = $value4;
+				}
+
 			}
 		}
 
 		// 排序
-
+		$total_number = sizeof($return);
 
 		 return [$return, $total_number];
 	}

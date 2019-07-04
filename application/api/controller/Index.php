@@ -135,8 +135,8 @@ class Index extends BaseController
         } else {
             if(intval($is_week)>0&&2>intval($is_week))
             {
-                $start_date = date("Y-m-d 0:0:0", time());
-                $end_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
+                $end_date = date("Y-m-d 0:0:0", time());
+                $start_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
             }
         }
 
@@ -147,10 +147,11 @@ class Index extends BaseController
         } else {
             if(intval($is_month)>0&&2>intval($is_month))
             {
-                $start_date = date("Y-m-d 0:0:0", time());
-                $end_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
+                $end_date = date("Y-m-d 0:0:0", time());
+                $start_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
             }
         }
+
 
         // 获取filter
         $this->getCustomFilter(['start_date', 'end_date','is_today', 'is_yesterday', 'is_week', 'is_month']);
@@ -833,7 +834,37 @@ class Index extends BaseController
      */
     public function staffPerformance()
     {
-    	return $this->ajaxFail('not implement yet', [], 1000);
+        $this->checkPageNoRecordNo();
+        $start_date = Request::instance()->param("start_date");
+        $end_date = Request::instance()->param("end_date");
+        $staff_id = Request::instance()->param("staff_id");
+
+        if(is_null($staff_id))
+        {
+            return $this->ajaxFail("staff_id field not found!", [], 1010);
+        }
+
+        if(is_null($start_date))
+        {
+            return $this->ajaxFail("start_date field not found!", [], 1010);
+        }
+
+        if(is_null($end_date))
+        {
+            return $this->ajaxFail("end_date field not found!", [], 1010);
+        }
+
+        // 开始日期不能晚于结束日期
+        if(strtotime($end_date) < strtotime($start_date))
+        {
+            return $this->ajaxFail("start date can not late than end_date!", [], 1010);   
+        }
+
+        $this->getCustomFilter(['start_date', 'end_date','staff_id']);
+
+        list($list, $total_number) = Order::getShiftOrder($this->store_code, $this->record_no, $this->page_no, $start_date, $end_date, $staff_id);
+
+        return $this->ajaxSuccess("get shift record success", $this->getReturn($list, $total_number));
     }
 
 
@@ -851,6 +882,55 @@ class Index extends BaseController
         $is_yesterday = Request::instance()->param("is_yesterday");
         $is_week = Request::instance()->param("is_week");
         $is_month = Request::instance()->param("is_month");
+
+        if(is_null($is_today))
+        {
+            return $this->ajaxFail("type field can not be empty", [], 5000);
+        } else {
+            if(intval($is_today)>0&&2>intval($is_today))
+            {
+                $start_date = date("Y-m-d 0:0:0", time());
+                $end_date = date("Y-m-d 23:59:59", time());    
+            }
+            
+        }
+
+        if(is_null($is_yesterday))
+        {
+            return $this->ajaxFail("is_yesterday field can not be empty", [], 5000);
+        } else {
+            if(intval($is_yesterday)>0&&2>intval($is_yesterday))
+            {
+                $start_date = date("Y-m-d 0:0:0", strtotime("-1 day"));
+                $end_date = date("Y-m-d 23:59:59", strtotime("-1 day"));    
+            }
+        }
+
+
+        if(is_null($is_week))
+        {
+            return $this->ajaxFail("is_week field can not be empty", [], 5000);
+        } else {
+            if(intval($is_week)>0&&2>intval($is_week))
+            {
+                $end_date = date("Y-m-d 23:59:59", time());
+                $start_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
+            }
+        }
+
+
+        if(is_null($is_month))
+        {
+            return $this->ajaxFail("is_month field can not be empty", [], 5000);
+        } else {
+            if(intval($is_month)>0&&2>intval($is_month))
+            {
+                $end_date = date("Y-m-d 23:59:59", time());
+                $start_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
+            }
+        }
+
+
 
     	// 静态信息
         list($new_member1, $all_member1) = Member::newMemberAndOldMember($this->store_code, $start_date, $end_date);
@@ -1242,6 +1322,67 @@ class Index extends BaseController
             return $this->ajaxFail("only post request is supported", [], 1004);
 
         }
+    }
+
+
+    /**
+     * 导入会员数据
+     * @return [type] [description]
+     */
+    public function importMember()
+    {
+        if(request()->isPost()){
+            // 保存文件，读取文件
+            $tag = "file";
+            $local_id = Request::instance()->param("local_id");
+            if(empty($_FILES['file']))
+            {
+                return $this->ajaxFail('excel file not found', [], 1000);
+            }
+
+            $uploaddir = 'app/';
+            $filename = $_FILES[$tag]['name'];
+            $ext_arr = explode(".", $filename);
+            if(!is_array($ext_arr)||sizeof($ext_arr)<2)
+            {
+                return $this->ajaxFail('no extention was found', [], 1001);
+            }
+
+            $ext = $ext_arr[sizeof($ext_arr)-1];
+
+            if(trim($ext)!="xlsx")
+            {
+                return $this->ajaxFail('member template extension must be of xlsx', [], 1002);
+            }
+
+            $new_file = date('Ymd').time().rand(10,99999).'.'.$ext;
+            $uploadfile = './static/excel/' .$new_file;
+            // 保存文件名
+            if (move_uploaded_file($_FILES[$tag]['tmp_name'], $uploadfile)) {
+              // return response()->json(['code'=>1, 'error_code'=>0, 'message'=>'success', 'data'=>['image_path'=>"http://{$_SERVER['HTTP_HOST']}/img/{$new_file}"]]);
+                $userinfo =User::getStoreByToken($this->token);
+
+                // 导入会员数据
+                $this->importExcel($uploadfile, $userinfo->local_id);
+            } else {
+              return $this->ajaxFail('upload failed', [], 1003);
+            }
+
+
+            return $this->ajaxFail("no file data found", [], 1004);
+        } else {
+            return $this->ajaxFail("only post request is supported", [], 1004);
+
+        }
+    }
+
+    /**
+     * 商品概览数据
+     * @return [type] [description]
+     */
+    public function goodsReview()
+    {
+
     }
 
 

@@ -32,25 +32,30 @@ class GoodsSnap extends Model
 		{
 			// 获取当前的
 			
-			$where['store_code'] = $store_code;
-			$where['is_forsale'] = 1;
+			$where1['store_code'] = $store_code;
+			$where1['is_forsale'] = 1;
+			$where1['goods_name'] = array('neq',"无码商品");
 
-			$on_shelf = Goods::where($where)->count();
+			$on_shelf = Goods::where($where1)->count();
 
 
 			$off_where['store_code'] = $store_code;
 			$off_where['is_forsale'] = 0;
+			$off_where['goods_name'] = array('neq',"无码商品");
+
 
 			$off_shelf = Goods::where($off_where)->count();
 
 
 			$inv_where['store_code'] = $store_code;
+			$inv_where['goods_name'] = array('neq',"无码商品");
+
 			$total_inv = Goods::where($inv_where)->sum('repertory');
 
 
 			$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code',['code'=>$store_code]);
 
-			return [$on_shelf, $off_shelf, $total_inv, $warning];
+			return [$on_shelf, $off_shelf, $total_inv, isset($warning)?$warning[0]['cc']:0];
 
 
 			// return self::currentLy($store_code, date("Y-m-d 0:0:0", time()));
@@ -62,23 +67,28 @@ class GoodsSnap extends Model
 
 	public static function currentLy($store_code, $check_time)
 	{
+
 		$where['store_code'] = $store_code;
 		$where['is_forsale'] = 1;
+		$where['goods_name'] = array('not like ',"%无码%");
 
 		$on_shelf = Goods::where($where)->count();
 
 
 		$off_where['store_code'] = $store_code;
 		$off_where['is_forsale'] = 0;
+		$off_where['goods_name'] = array('not like ',"%无码%");
 
 		$off_shelf = Goods::where($off_where)->count();
 
 
 		$inv_where['store_code'] = $store_code;
+		$inv_where['goods_name'] = array('not like ',"%无码%");
 		$total_inv = Goods::where($inv_where)->sum('repertory');
 
 
 		$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code',['code'=>$store_code]);
+
 
 		// 写入数据库
 		$record = new GoodsSnap();
