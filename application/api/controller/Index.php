@@ -191,12 +191,31 @@ class Index extends BaseController
     }
 
     /**
-     * 销售概况
+     * 销售概况 (营业概况)
      * @return [type] [description]
      */
     public function salesOutlook()
     {
-    	return $this->ajaxFail('not implement yet', [], 1000);
+        $this->checkField(['start_date', 'end_date']);
+        
+        $start_date = Request::instance()->param("start_date");
+        $end_date = Request::instance()->param("end_date");
+        list($total_order_no, $total_revenue, $cash_revenue, $alibaba_revenue,  $wechat_revenue, $refund_money, $refund_order_no, $profit, $refund_cash, $refund_ali, $refund_wechat) = order::getSalesOutlook($this->store_code, $start_date, $end_date);
+
+        $tmp['total_order_no'] = $total_order_no;
+        $tmp['total_revenue'] = $total_revenue;
+        $tmp['cash'] = $cash_revenue;
+        $tmp['ali'] = $alibaba_revenue;
+        $tmp['wechat'] = $wechat_revenue;
+        $tmp['refund_order_no'] = $refund_order_no;
+        $tmp['refund_money'] = $refund_money;
+        $tmp['profit'] = $profit;
+        $tmp['refund_cash'] = $refund_cash;
+        $tmp['refund_ali'] = $refund_ali;
+        $tmp['refund_wechat'] = $refund_wechat;
+
+
+    	return $this->ajaxSuccess('get order list success', $this->getReturn($tmp, 1));
     }
 
     /**
@@ -1384,6 +1403,8 @@ class Index extends BaseController
     {
 
     }
+
+
 
 
 

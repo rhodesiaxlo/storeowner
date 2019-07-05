@@ -44,6 +44,8 @@ class OrderGoods extends Model
 				   ->group('g.goods_sn')
 				   ->order("goods_total_no", "desc")
 				   ->select();
+
+		// exit(db('order_goods')->getLastSql());
 		
 		return [$money_list, $no_list];
 	}

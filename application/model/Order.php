@@ -136,6 +136,11 @@ class Order extends Model
 		$where_discount['status'] = 1; // 已完成
 		$where_discount['discounts_price'] = array('neq', "0"); // 已完成
 
+		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
+		{
+			$where_discount['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		}
+
 		$non_member_order_no = self::where($where_non_member)->count();
 		$member_order_no = self::where($where_member)->count();
 
@@ -148,6 +153,100 @@ class Order extends Model
 
 	public static function getTodayRevenue($code)
 	{
+
+	}
+
+
+	/**
+	 * 获取营业概况数据
+	 * @param  [type] $code       [description]
+	 * @param  [type] $start_date [description]
+	 * @param  [type] $end_date   [description]
+	 * @return [type]             [description]
+	 */
+	public static function getSalesOutlook($code, $start_date, $end_date)
+	{
+		// 获取完成订单的现金数据，微信数据，支付宝数据  订单数量和销售金额
+		// 服务退款订单的订单数量和退货金额
+		// 
+		
+		$where['store_code'] = $code;
+		$where['status'] = array('in',[1,3]);
+		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
+		{
+			$where['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		}
+
+		$order_total_number = self::where($where)->count();
+
+		$where_refund['store_code'] = $code;
+		$where_refund['status'] = 3;
+		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
+		{
+			$where_refund['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		}
+
+		$order_refund_number = self::where($where_refund)->count();
+		$order_refund_money = self::where($where_refund)->sum("receivable_price");
+
+
+		// 微信，支付宝，现金
+		$where['pay_type'] = 0; // 现金
+		$order_cash_money = self::where($where)->sum("receivable_price");
+
+
+		unset($where['pay_type']);
+		$where['pay_type'] = 1; // 支付宝
+		$order_alibaba_money = self::where($where)->sum("receivable_price");
+
+
+		unset($where['pay_type']);
+		$where['pay_type'] = 2; // 支付宝
+		$order_wechat_money = self::where($where)->sum("receivable_price");
+
+
+		unset($where['pay_type']);
+		unset($where['status']);
+		$where['status'] = 3;
+		$where['pay_type'] = 0;
+		$refund_cash = self::where($where)->sum("receivable_price");
+
+		unset($where['pay_type']);
+		$where['pay_type'] = 1;
+		$refund_ali = self::where($where)->sum("receivable_price");
+
+
+		unset($where['pay_type']);
+		$where['pay_type'] = 2;
+		$refund_wechat = self::where($where)->sum("receivable_price");
+
+
+		$profit_where['g.store_code'] = $code;
+		$profit_where['o.status'] = array('in',[5,6]);
+		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
+		{
+			$profit_where['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		}
+
+		// 计算利润
+		$money_list = db('order')->alias("o")
+					->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
+					//->field(" sum(g.cost_price*g.goods_num) as cost_basic")
+					->where($profit_where)
+					->select();
+
+		$profit = 0;
+		if(empty($money_list))
+		{
+			
+		} else {
+			$profit = $money_list[0]['revenue'] - $money_list[0]['cost_basic'];
+		}
+
+		//exit("total order no = {$order_total_number}  refund order no = {$order_refund_number}  refund money = {$order_refund_money}  order cash = {$order_cash_money} order ali = {$order_alibaba_money}  order wechat = {$order_wechat_money}  ==".json_encode($money_list));
+		
+		return [$order_total_number, $order_cash_money+$order_alibaba_money+$order_wechat_money, $order_cash_money, $order_alibaba_money, $order_wechat_money, $order_refund_money, $order_refund_number, $profit, $refund_cash, $refund_ali, $refund_wechat];
+
 
 	}
 
