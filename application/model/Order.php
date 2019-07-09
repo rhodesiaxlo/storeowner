@@ -32,13 +32,13 @@ class Order extends Model
 			// 微信
 			if(intval($payment_way) == 11)
 			{
-				$where['pay_type'] = 1;
+				$where['pay_type'] = 2;
 			}
 
 			// 支付宝
 			if(intval($payment_way) == 21)
 			{
-				$where['pay_type'] = 2;
+				$where['pay_type'] = 1;
 			}
 
 			// 微信
@@ -222,7 +222,7 @@ class Order extends Model
 
 
 		$profit_where['g.store_code'] = $code;
-		$profit_where['o.status'] = array('in',[5,6]);
+		$profit_where['o.status'] = array('in',[3,1]);
 		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
 		{
 			$profit_where['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
@@ -231,16 +231,17 @@ class Order extends Model
 		// 计算利润
 		$money_list = db('order')->alias("o")
 					->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
-					//->field(" sum(g.cost_price*g.goods_num) as cost_basic")
+					->field("sum(receivable_price) as revenue, sum(g.cost_price*g.goods_num) as cost_basic")
 					->where($profit_where)
 					->select();
+
 
 		$profit = 0;
 		if(empty($money_list))
 		{
 			
 		} else {
-			$profit = $money_list[0]['revenue'] - $money_list[0]['cost_basic'];
+			$profit = number_format($money_list[0]['revenue'] - $money_list[0]['cost_basic'], 2);
 		}
 
 		//exit("total order no = {$order_total_number}  refund order no = {$order_refund_number}  refund money = {$order_refund_money}  order cash = {$order_cash_money} order ali = {$order_alibaba_money}  order wechat = {$order_wechat_money}  ==".json_encode($money_list));
@@ -267,7 +268,7 @@ class Order extends Model
 			$where['o.store_code'] = $code;
 		}
 
-		if(is_numeric($staff_id))
+		if(is_numeric($staff_id)&&intval($staff_id)>1)
 		{
 			$where['o.uid'] = $staff_id;
 		}
@@ -315,7 +316,13 @@ class Order extends Model
 
 		}
 
-		$count = sizeof($money_list);
+		$count = db('order')->alias("o")
+			->join("pos_user u", "u.id=o.uid and o.store_code=u.store_code")
+			->field("o.*, u.realname, u.id as u_id, 0 as wechat, 0 as alibaba, 0 as unipay, 0 as cash")
+			->where($where)
+			// 这里有问题，不能用金额排序，加上这段就报错
+			->count();
+			
 
 		return [$money_list, $count];
 

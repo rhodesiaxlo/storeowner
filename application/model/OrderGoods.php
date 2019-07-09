@@ -29,25 +29,44 @@ class OrderGoods extends Model
 
 		$money_list = db('order_goods')->alias("g")
 						   ->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
-						   ->field("g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time,sum(g.subtotal_price) as goods_total_price")
+						   ->field("g.goods_name,g.order_id,o.id as o_id,0 as rate, o.store_code as o_store_code, o.status,o.create_time,sum(g.subtotal_price) as goods_total_price")
 						   ->where($where)
 						   ->group('g.goods_sn')
 						 ->order("goods_total_price", "desc")
 						   ->select();
 
+		$mon_total = 0;
+		foreach ($money_list as $key => $value) {
+			$mon_total +=$value['goods_total_price'];
+		}
+
+		foreach ($money_list as $key => $value) {
+			$money_list[$key]['rate'] = number_format( $value['goods_total_price']/$mon_total, 2)*100;
+		}
+
+
 
 
 		$no_list = db('order_goods')->alias("g")
 				   ->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
-				   ->field("g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time,sum(g.goods_num) as goods_total_no")
+				   ->field("g.goods_name,g.order_id,o.id as o_id,0 as rate, o.store_code as o_store_code, o.status,o.create_time,sum(g.goods_num) as goods_total_no")
 				   ->where($where)
 				   ->group('g.goods_sn')
 				   ->order("goods_total_no", "desc")
 				   ->select();
 
-		// exit(db('order_goods')->getLastSql());
+		$no_total = 0;
+		foreach ($no_list as $key => $value) {
+			$no_total +=$value['goods_total_no'];
+		}
+
+		foreach ($no_list as $key => $value) {
+			$no_list[$key]['rate'] = number_format( $value['goods_total_no']/$no_total, 2)*100;
+		}
+
 		
-		return [$money_list, $no_list];
+		
+		return [ $no_list,$money_list];
 	}
 
 	public static function getOrderByCategory($code, $start_date, $end_date,$is_order_by_money)
@@ -57,6 +76,8 @@ class OrderGoods extends Model
 		$where['o.status'] = 1; // 已完成
 		$where['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
 
+		$order_no = Order::where(['store_code'=>$code,'status'=>1, 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
+		
 		if(intval($is_order_by_money)>0)
 		{
 			$money_list = db('order_goods')->alias("g")
@@ -64,12 +85,13 @@ class OrderGoods extends Model
 					   ->join("pos_goods g2", "g2.store_code=g.store_code and g2.goods_sn=g.goods_sn")
 					   ->join("pos_category cat", "cat.id=g2.cat_id")
 					   //->field("g2.cat_id,g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time")
-					   ->field("cat.name,sum(g.subtotal_price) as revenue,count(g.order_id) as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
+					   ->field("cat.name,sum(g.subtotal_price) as revenue,{$order_no} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
 					   ->where($where)
 					   ->group('cat.id')
 					   // 这里有问题，不能用金额排序，加上这段就报错
 					   ->order('revenue','desc')
 					   ->select();
+			// $order_no = self::where(['store_code'=>$code,'status'=>1, 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
 
 		} else {
 			$money_list = db('order_goods')->alias("g")
@@ -77,7 +99,7 @@ class OrderGoods extends Model
 					   ->join("pos_goods g2", "g2.store_code=g.store_code and g2.goods_sn=g.goods_sn")
 					   ->join("pos_category cat", "cat.id=g2.cat_id")
 					   //->field("g2.cat_id,g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time")
-					   ->field("cat.name,sum(g.subtotal_price) as revenue,count(g.order_id) as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
+					   ->field("cat.name,sum(g.subtotal_price) as revenue,{$order_no} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
 					   ->where($where)
 					   ->group('cat.id')
 					   ->order("goods_number", "desc")
@@ -114,7 +136,7 @@ class OrderGoods extends Model
 		$list_no = sizeof($money_list);
 
 		// 记录数 总销量 总应收 总优惠  总实收
-		return [$money_list, $total_actual, $total_discount, $total_order_no, $total_goods_num, $list_no];
+		return [$money_list, $total_actual, $total_discount, $total_order_no, $total_goods_num, $list_no, $order_no];
 	}
 
 

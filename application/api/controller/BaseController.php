@@ -44,6 +44,7 @@ class BaseController
         {
             return false;
         }
+        return true;
     }
 
     public function isEmptyOrInt($var)

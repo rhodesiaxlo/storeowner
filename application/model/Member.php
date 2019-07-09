@@ -70,25 +70,33 @@ class Member extends Model
 	 */
 	public static function rankByCompu($code, $start_date=null, $end_date=null)
 	{
+
 		$where = [];
 		$where['o.store_code'] = $code;
 		$where['o.status'] = 1; // 已完成
 		$where['o.mid'] = array('neq', 0);
 		$where['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
 
+		$total = Order::where(['status'=>1, 'store_code'=>$code, 'mid' =>array('neq', 0), 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
 		$list = db('order')->alias("o")
 						 	->join("pos_member m", "m.id=o.mid and m.store_code=o.store_code")
-						   ->field("m.uname,m.phone, count(o.order_sn) as order_number,sum(receivable_price) as total_consumption")
+						   ->field("m.id, m.uname,m.phone,{$total} as order_number,sum(receivable_price) as total_consumption")
 
 						   ->where($where)
-						   //->group('o.mid')
+						   ->group('o.mid')
 						   ->order("total_consumption desc")
 						   ->select();
+		//exit(json_encode($list));
 
 
 		$total_number = db('order')->alias("o")
 						   ->where($where)
 						   ->sum('receivable_price');
+
+		if($total_number == 0)
+		{
+			$list = [];
+		}
 
 		return [$list, $total_number];
 	}
@@ -153,6 +161,7 @@ class Member extends Model
 			$result['range'] = strval($start).'--'.strval($end);
 
 			$where['points'] = ['between', $start.",".$end];
+			$where['store_code'] = $code;
 			// 计算积分在区间 start  end 范围内的会员的 个数
 			$result['count'] = self::where($where)->count();
 			$ret [] = $result;
@@ -179,11 +188,11 @@ class Member extends Model
 		$order_where['status'] = 1;
 		$order_where['mid'] = ['neq', 0];
 		$order_where['create_time'] = ['between', strval(strtotime($start_date)*1000).','.strval(strtotime($end_date)*1000)];
-		$mid_list = Order::where($order_where)->field('mid')->group('mid')->select();
+		$mid_list = Member::where(['store_code'=>$code])->field('id')->select();
 
 		$id_list = [];
 		foreach ($mid_list as $key => $value) {
-			$id_list[] = $value->mid;
+			$id_list[] = $value->id;
 		}
 
 
@@ -200,7 +209,7 @@ class Member extends Model
 			$tmp_where['store_code'] = $code;
 			$tmp_where['status'] = 1;
 			$tmp_where['mid'] = $cur_mid;
-			$tmp_where['create_time'] = ['between', strval(strtotime($start_date)*1000).','.strval(strtotime($end_date)*1000)];
+			//$tmp_where['create_time'] = ['between', strval(strtotime($start_date)*1000).','.strval(strtotime($end_date)*1000)];
 
 
 			$order_no = Order::where($tmp_where)->count();
@@ -211,6 +220,8 @@ class Member extends Model
 
 			$m_con_list[$cur_mid] = $per;
 		}
+
+
 		
 
 

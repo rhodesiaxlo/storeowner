@@ -128,6 +128,20 @@ class Index extends BaseController
             }
         }
 
+        $date=date('Y-m-d');  //当前日期
+
+        $first=1; //$first =1 表示每周星期一为开始日期 0表示每周日为开始日期
+
+        $w=date('w',strtotime($date));  //获取当前周的第几天 周日是 0 周一到周六是 1 - 6
+
+        $now_start=date('Y-m-d',strtotime("$date -".($w ? $w - $first : 6).' days')); //获取本周开始日期，如果$w是0，则表示周日，减去 6 天
+
+        $now_end=date('Y-m-d',strtotime("$now_start +6 days"));  //本周结束日期
+
+        $last_start=date('Y-m-d',strtotime("$now_start - 7 days"));  //上周开始日期
+
+        $last_end=date('Y-m-d',strtotime("$now_start - 1 days"));  //上周结束日期
+
 
         if(is_null($is_week))
         {
@@ -135,11 +149,15 @@ class Index extends BaseController
         } else {
             if(intval($is_week)>0&&2>intval($is_week))
             {
-                $end_date = date("Y-m-d 0:0:0", time());
-                $start_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
+                // $end_date = date("Y-m-d 23:59:59", time());
+                // $start_date = date("Y-m-d 23:59:59", strtotime("-7 day")); 
+
+                $start_date = $now_start;
+                $end_date = $now_end;   
             }
         }
 
+        // exit("start date = {$start_date}  end date = {$end_date}");
 
         if(is_null($is_month))
         {
@@ -147,7 +165,7 @@ class Index extends BaseController
         } else {
             if(intval($is_month)>0&&2>intval($is_month))
             {
-                $end_date = date("Y-m-d 0:0:0", time());
+                $end_date = date("Y-m-d 23:59:59", time()); 
                 $start_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
             }
         }
@@ -180,10 +198,12 @@ class Index extends BaseController
         $return_data['new_member_no'] = $new_member_no;
         $return_data['old_member_no'] = $old_member_no;
         $return_data['new_member_order_no'] = $new_member_order_no;
-        $return_data['old_member_order_no'] = $non_member_order_no + $member_order_no - $new_member_order_no;
+        $return_data['old_member_order_no'] =  $member_order_no - $new_member_order_no;
         $return_data['inven_warning'] = $inven_warning;
         $return_data['rank_by_money'] = $rank_by_money;
         $return_data['rank_by_no'] = $rank_by_no;
+
+        // exit(json_encode($return_data));
         
 
         return $this->ajaxSuccess('get order list success', $this->getReturn($return_data, 1));
@@ -291,7 +311,7 @@ class Index extends BaseController
         {
             return $this->ajaxFail("is_today field can not be empty", [], 5000);
         } else {
-            if(intval($is_today)>0&&2>intval($is_today))
+            if(intval($is_today)==1)
             {
                 $start_date = date("Y-m-d 0:0:0", time());
                 $end_date = date("Y-m-d 23:59:59", time());    
@@ -303,7 +323,7 @@ class Index extends BaseController
         {
             return $this->ajaxFail("is_yesterday field can not be empty", [], 5000);
         } else {
-            if(intval($is_yesterday)>0&&2>intval($is_yesterday))
+            if(intval($is_yesterday)==1)
             {
                 $start_date = date("Y-m-d 0:0:0", strtotime("-1 day"));
                 $end_date = date("Y-m-d 23:59:59", strtotime("-1 day"));    
@@ -315,10 +335,10 @@ class Index extends BaseController
         {
             return $this->ajaxFail("is_week field can not be empty", [], 5000);
         } else {
-            if(intval($is_week)>0&&2>intval($is_week))
+            if(intval($is_week)==1)
             {
-                $start_date = date("Y-m-d 0:0:0", time());
-                $end_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
+                $end_date = date("Y-m-d 0:0:0", time());
+                $start_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
             }
         }
 
@@ -327,10 +347,10 @@ class Index extends BaseController
         {
             return $this->ajaxFail("is_month field can not be empty", [], 5000);
         } else {
-            if(intval($is_month)>0&&2>intval($is_month))
+            if(intval($is_month)==1)
             {
-                $start_date = date("Y-m-d 0:0:0", time());
-                $end_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
+                $end_date = date("Y-m-d 0:0:0", time());
+                $start_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
             }
         }
 
@@ -354,7 +374,7 @@ class Index extends BaseController
         if(intval($type) ==1)
         {
             // 分类分
-            list($list, $total_actual, $total_discount, $total_order_no, $total_goods_num, $list_no) = OrderGoods::getOrderByCategory($this->store_code, $start_date, $end_date, $is_order_by_money);
+            list($list, $total_actual, $total_discount, $total_order_no, $total_goods_num, $list_no, $order_no) = OrderGoods::getOrderByCategory($this->store_code, $start_date, $end_date, $is_order_by_money);
         } elseif (intval($type) ==2) {
             // 支付分
             list($list, $total_actual, $total_discount, $total_order_no, $total_goods_num, $list_no) = OrderGoods::getOrderByPayment($this->store_code, $start_date, $end_date, $is_order_by_money);
@@ -400,7 +420,7 @@ class Index extends BaseController
         {
             return $this->ajaxFail("type field can not be empty", [], 5000);
         } else {
-            if(intval($is_today)>0&&2>intval($is_today))
+            if(intval($is_today)==1)
             {
                 $start_date = date("Y-m-d 0:0:0", time());
                 $end_date = date("Y-m-d 23:59:59", time());    
@@ -412,7 +432,7 @@ class Index extends BaseController
         {
             return $this->ajaxFail("is_yesterday field can not be empty", [], 5000);
         } else {
-            if(intval($is_yesterday)>0&&2>intval($is_yesterday))
+            if(intval($is_yesterday)==1)
             {
                 $start_date = date("Y-m-d 0:0:0", strtotime("-1 day"));
                 $end_date = date("Y-m-d 23:59:59", strtotime("-1 day"));    
@@ -424,10 +444,10 @@ class Index extends BaseController
         {
             return $this->ajaxFail("is_week field can not be empty", [], 5000);
         } else {
-            if(intval($is_week)>0&&2>intval($is_week))
+            if(intval($is_week)==1)
             {
-                $start_date = date("Y-m-d 0:0:0", time());
-                $end_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
+                $end_date = date("Y-m-d 0:0:0", time());
+                $start_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
             }
         }
 
@@ -436,10 +456,10 @@ class Index extends BaseController
         {
             return $this->ajaxFail("is_month field can not be empty", [], 5000);
         } else {
-            if(intval($is_month)>0&&2>intval($is_month))
+            if(intval($is_month)==1)
             {
-                $start_date = date("Y-m-d 0:0:0", time());
-                $end_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
+                $end_date = date("Y-m-d 0:0:0", time());
+                $start_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
             }
         }
 
@@ -471,6 +491,7 @@ class Index extends BaseController
         $return['total_order_no'] = $total_order_no;
         $return['list_no'] = $list_no;
         $return['total_customerpay'] = $total_customerpay;
+        $return['list_no'] = sizeof($list);
         return $this->ajaxSuccess('get order list success', $this->getReturn($return, 1));
 
     }
@@ -532,34 +553,59 @@ class Index extends BaseController
         }
 
 
-        // if(is_numeric($is_current_week)&&intval($is_current_week)==1)
-        // {
-        //     $tmp = strtotime($start_date);
-        //     $end_date = date("Y-m-d H:i:s", $tmp - 60*60*24*7);
-        // }
 
-        // if(is_numeric($two_weeks)&&intval($two_weeks)==1)
-        // {ro
-        //     $tmp = strtotime($start_date);
-        //     $end_date = date("Y-m-d H:i:s", $tmp - 60*60*24*7*2);   
-        // }
 
-        // if(is_numeric($one_month)&&intval($one_month)==1)
-        // {
-        //     $tmp = strtotime($start_date);
-        //     $tmp_m = date("m", $tmp);
-        //     $tmp_y = date("Y", $tmp);
 
-        //     $m_1 = $tmp_m -1;
-        //     $y_1 = $tmp_y -1;
 
-        //     if($tmp_m>1)
-        //     {
-        //         $end_date = date("Y-{$m_1}-d H:i:s", strtotime($start_date));
-        //     } else {
-        //         $end_date = date("{$y_1}-12-d H:i:s", strtotime($start_date));
-        //     }
-        // }
+        if(is_null($is_current_week))
+        {
+            return $this->ajaxFail("is_current_week field can not be empty", [], 5000);
+        } else {
+            if(intval($is_current_week)==1)
+            {
+                $end_date = date("Y-m-d 23:59:59", time());
+                $start_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
+            }
+        }
+
+
+        if(is_null($is_previous_week))
+        {
+            return $this->ajaxFail("is_previous_week field can not be empty", [], 5000);
+        } else {
+            if(intval($is_previous_week)==1)
+            {
+                $end_date = date("Y-m-d 23:59:59", strtotime("-7 day"));
+                $start_date = date("Y-m-d 23:59:59", strtotime("-14 day"));    
+            }
+        }
+
+        // exit("start date = {$start_date}  end date = {$end_date}");
+
+        if(is_null($is_current_month))
+        {
+            return $this->ajaxFail("is_current_month field can not be empty", [], 5000);
+        } else {
+            if(intval($is_current_month)==1)
+            {
+                $end_date = date("Y-m-d 23:59:59", time()); 
+                $start_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
+            }
+        }
+
+        if(is_null($is_previous_month))
+        {
+            return $this->ajaxFail("is_previous_month field can not be empty", [], 5000);
+        } else {
+            if(intval($is_previous_month)==1)
+            {
+                $end_date = date("Y-m-d 23:59:59", strtotime("-30 day")); 
+                $start_date = date("Y-m-d 23:59:59", strtotime("-60 day"));    
+            }
+        }
+
+
+
 
         $this->getCustomFilter(['is_current_week','is_previous_week','is_current_month','is_previous_month','start_date','end_date','min','max','num']);
         
@@ -1075,9 +1121,9 @@ class Index extends BaseController
         $this->checkField(['one_week','two_weeks','one_month','start_date','end_date','min','max','num']);
 
         // 字段验证
-        $one_week   = Request::instance()->param("is_current_week");
-        $two_weeks  = Request::instance()->param("is_previous_week");
-        $one_month  = Request::instance()->param("is_current_month");
+        $one_week   = Request::instance()->param("one_week");
+        $two_weeks  = Request::instance()->param("two_weeks");
+        $one_month  = Request::instance()->param("one_month");
         $start_date        = Request::instance()->param("start_date");
         $end_date          = Request::instance()->param("end_date");
         $min               = Request::instance()->param("min");
@@ -1611,7 +1657,7 @@ class Index extends BaseController
             return $this->ajaxSuccess("success success 共处理 {$total} 条，新增 {$create_num} 条， 更新 {$update_num} 条, 出错 {$error_num} 条", $ret);
 
         } else {
-            return $this->ajaxFail("fail  共处理 {$total} 条，新增 {$create_num} 条， 更新 {$update_num} 条, 出错 {$error_num} 条", [], 1004);
+            return $this->ajaxFail("fail  共处理 {$total} 条，新增 {$create_num} 条， 更新 {$update_num} 条, 出错 {$error_num} 条  ", $message, 1004);
         }
         // 返回结果
     }
@@ -1703,7 +1749,7 @@ class Index extends BaseController
         if(!empty($row[12]))
         {
             $obj = json_decode(json_encode($row[12], true));
-            if(!empty($obj)&&!is_null($obj))
+            if(!empty($obj)&&!is_null($obj)&&is_object($obj))
             {
                 $date = strval($obj->date);
                 // 条码不能为中文
@@ -2110,6 +2156,8 @@ class Index extends BaseController
                 $arr['is_short'] = intval($is_short);
             }
         }
+
+        exit(json_encode($arr));
 
 
         $id_arr = explode(",", $goods_import_id_list);
