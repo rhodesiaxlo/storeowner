@@ -35,6 +35,8 @@ class OrderGoods extends Model
 						 ->order("goods_total_price", "desc")
 						   ->select();
 
+
+
 		$mon_total = 0;
 		foreach ($money_list as $key => $value) {
 			$mon_total +=$value['goods_total_price'];
@@ -49,11 +51,14 @@ class OrderGoods extends Model
 
 		$no_list = db('order_goods')->alias("g")
 				   ->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
-				   ->field("g.goods_name,g.order_id,o.id as o_id,0 as rate, o.store_code as o_store_code, o.status,o.create_time,sum(g.goods_num) as goods_total_no")
+				   ->field("g.goods_name,g.order_id,o.id as o_id,0 as rate, o.store_code as o_store_code, o.status,o.create_time,g.goods_num")
 				   ->where($where)
-				   ->group('g.goods_sn')
-				   ->order("goods_total_no", "desc")
+				   //->group('g.goods_sn')
+				   //->order("goods_total_no", "desc")
 				   ->select();
+
+		exit(json_encode($no_list));
+
 
 		$no_total = 0;
 		foreach ($no_list as $key => $value) {

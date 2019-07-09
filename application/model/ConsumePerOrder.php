@@ -22,6 +22,7 @@ class ConsumePerOrder extends Model
 	 */
 	public static function createRecord($code, $earlier, $later, $type)
 	{
+
 		// 对所有商家的订单信息，进行采集
 		$store_code_list = User::getStoreCodeList();
 
@@ -58,11 +59,13 @@ class ConsumePerOrder extends Model
 			$where['o.store_code'] = $value['store_code'];
 			$where['o.create_time'] = ['between',strval(strtotime($earlier)*1000).",".strval(strtotime($later)*1000)];
 			$where['o.status'] = 1;
+
+			$order_no = Order::where(['status'=>1,'store_code'=>$value['store_code'],'create_time'=>['between',strval(strtotime($earlier)*1000).",".strval(strtotime($later)*1000)]])->count();
 			$money_list = db('order')->alias("o")
 					   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
 					   ->join("pos_goods g2", "g2.store_code=g.store_code and g2.goods_sn=g.goods_sn")
 					   ->join("pos_category cat", "cat.id=g2.cat_id")
-					   ->field("sum(g.subtotal_price) as revenue,count(g.order_id) as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
+					   ->field("sum(g.subtotal_price) as revenue,{$order_no} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
 					   ->where($where)
 					   ->order('revenue','desc')
 					   ->select();
@@ -138,18 +141,21 @@ class ConsumePerOrder extends Model
 
 			}
 		} elseif (intval($type) ==2) {
+
+
 			// 按天
-			$later = date("Y-m-d 0:0:0", strtotime($end_date));
+			$later = date("Y-m-d 23:59:59", strtotime($end_date));
 			// 向前推一天
-			$later = date("Y-m-d 0:0:0", strtotime($later)-60*60*24);			
+			//$later = date("Y-m-d 23:59:59", strtotime($later)-60*60*24);			
 
 
 
-			while(strtotime($later) > strtotime($start_date))
+			//exit(" start = {$start_date}  later = {$later}");;
+			while(strtotime($later) >= strtotime($start_date))
 			{
 				$time_list[] = $later;
 
-				$later  = date("Y-m-d 0:0:0", strtotime($later)-60*60*24);
+				$later  = date("Y-m-d 23:59:59", strtotime($later)-60*60*24);
 			}
 		} elseif (intval($type) ==1) {
 			$later = date("Y-m-d H:0:0", strtotime($end_date));
@@ -167,6 +173,7 @@ class ConsumePerOrder extends Model
 
 
 
+		//exit(json_encode($time_list));
 		foreach ($time_list as $key => $value) {
 			unset($mywhere);
 			$mywhere['store_code'] = $code;
@@ -202,7 +209,7 @@ class ConsumePerOrder extends Model
 		$where['check_date'] = ['between', $start_date.",".$end_date];
 		$where['code'] = $type;
 		$count = self::where($where)->count();
-		$list =  self::where($where)->order('check_date','desc')->select();
+		$list =  self::where($where)->order('check_date','desc')->order('check_date', 'asc')->select();
 		return [$list, $count];
 	}
 

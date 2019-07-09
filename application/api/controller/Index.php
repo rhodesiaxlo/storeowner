@@ -178,7 +178,7 @@ class Index extends BaseController
         list($finished_money, $refund_money, $refund_order_no, $non_member_order_no, $member_order_no, $discount_money_total, $discount_order_no) = Order::revenue($this->store_code, $start_date, $end_date);
         list($on_shelf_goods_no, $off_shelf_goods_no, $inven_total, $inven_warning) = GoodsSnap::getSnap($this->store_code, $end_date);
 
-        list($rank_by_no, $rank_by_money) = OrderGoods::getRank($this->store_code, $start_date, $end_date);
+        list( $rank_by_money, $rank_by_no) = OrderGoods::getRank($this->store_code, $start_date, $end_date);
 
         list($old_member_no, $new_member_no, $new_member_order_no) = Member::memStatic($this->store_code, $start_date, $end_date);
 
@@ -278,6 +278,7 @@ class Index extends BaseController
 
         }
 
+
         if($type <1)
         {
             return $this->ajaxFail('date error', [], 1000);
@@ -287,6 +288,7 @@ class Index extends BaseController
         $this->getCustomFilter(['start_date', 'end_date']);
 
         list($list, $number) = ConsumePerOrder::getList($this->store_code, $start_date, $end_date, $type);
+
 
         return $this->ajaxSuccess('get order list success', $this->getReturn($list, $number));
     }
