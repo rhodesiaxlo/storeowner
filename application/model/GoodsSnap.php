@@ -70,20 +70,20 @@ class GoodsSnap extends Model
 
 		$where['store_code'] = $store_code;
 		$where['is_forsale'] = 1;
-		$where['goods_name'] = array('not like ',"%无码%");
+		$where['goods_name'] = array('notlike',"%无码%");
 
 		$on_shelf = Goods::where($where)->count();
 
 
 		$off_where['store_code'] = $store_code;
 		$off_where['is_forsale'] = 0;
-		$off_where['goods_name'] = array('not like ',"%无码%");
+		$off_where['goods_name'] = array('notlike',"%无码%");
 
 		$off_shelf = Goods::where($off_where)->count();
 
 
 		$inv_where['store_code'] = $store_code;
-		$inv_where['goods_name'] = array('not like ',"%无码%");
+		$inv_where['goods_name'] = array('notlike',"%无码%");
 		$total_inv = Goods::where($inv_where)->sum('repertory');
 
 
