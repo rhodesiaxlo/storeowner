@@ -2157,8 +2157,6 @@ class Index extends BaseController
             }
         }
 
-        exit(json_encode($arr));
-
 
         $id_arr = explode(",", $goods_import_id_list);
         // 开启事务
