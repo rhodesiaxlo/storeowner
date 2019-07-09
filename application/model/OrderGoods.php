@@ -51,13 +51,12 @@ class OrderGoods extends Model
 
 		$no_list = db('order_goods')->alias("g")
 				   ->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
-				   ->field("g.goods_name,g.order_id,o.id as o_id,0 as rate, o.store_code as o_store_code, o.status,o.create_time,g.goods_num")
+				   ->field("g.goods_name,g.order_id,o.id as o_id,0 as rate, o.store_code as o_store_code, o.status,o.create_time,g.goods_num, sum(g.goods_num) as goods_total_no")
 				   ->where($where)
-				   //->group('g.goods_sn')
-				   //->order("goods_total_no", "desc")
+				   ->group('g.goods_sn')
+				   ->order("goods_total_no", "desc")
 				   ->select();
 
-		exit(json_encode($no_list));
 
 
 		$no_total = 0;
@@ -512,6 +511,13 @@ class OrderGoods extends Model
 					$new_14[$key3]['future_goods_number'] = 10000;		 			
 		 		}
 		 	}
+		 }
+
+		 for($i = sizeof($new_14)-1;$i>=0;$i--)
+		 {
+		 	if($new_14[$i]['future_goods_number'] == 10000)
+		 		unset($new_14[$i]);
+	
 		 }
 
 
