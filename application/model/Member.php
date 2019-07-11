@@ -183,17 +183,24 @@ class Member extends Model
 	public static function conByPerson($code, $start_date, $end_date, $min, $max, $num)
 	{
 
+		// exit(" start date = {$start_date}  end date = {$end_date}");
 		// 筛选出这段时间所有的会员个数和会员列表
 		$order_where['store_code'] = $code;
 		$order_where['status'] = 1;
 		$order_where['mid'] = ['neq', 0];
 		$order_where['create_time'] = ['between', strval(strtotime($start_date)*1000).','.strval(strtotime($end_date)*1000)];
-		$mid_list = Member::where(['store_code'=>$code])->field('id')->select();
+		//$mid_list = Member::where(['store_code'=>$code])->field('id')->select();
+		$mid_list = Order::where($order_where)->field('mid')->select();
+
 
 		$id_list = [];
 		foreach ($mid_list as $key => $value) {
-			$id_list[] = $value->id;
+			$id_list[] = $value->mid;
 		}
+
+
+		// $lis = Order::where($order_where)->select();
+		// exit(json_encode($lis));
 
 
 		$total = sizeof($id_list);
@@ -209,10 +216,11 @@ class Member extends Model
 			$tmp_where['store_code'] = $code;
 			$tmp_where['status'] = 1;
 			$tmp_where['mid'] = $cur_mid;
-			//$tmp_where['create_time'] = ['between', strval(strtotime($start_date)*1000).','.strval(strtotime($end_date)*1000)];
+			$tmp_where['create_time'] = ['between', strval(strtotime($start_date)*1000).','.strval(strtotime($end_date)*1000)];
 
 
 			$order_no = Order::where($tmp_where)->count();
+
 
 			$order_total = Order::where($tmp_where)->sum('receivable_price');
 			// if($value==5)

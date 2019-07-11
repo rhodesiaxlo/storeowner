@@ -1258,6 +1258,7 @@ class Index extends BaseController
         $this->getCustomFilter(['one_week','two_weeks','one_month','start_date','end_date','min','max','num']);
 
 
+        //exit(" start date = {$start_date}  end date = {$end_date}");
         list($list, $member_total) = Member::conByPerson($this->store_code, $start_date, $end_date, $min, $max, $num);
 
     	return $this->ajaxSuccess(" success", $this->getReturn($list, $member_total));
