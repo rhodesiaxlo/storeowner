@@ -642,9 +642,11 @@ class OrderGoods extends Model
 		$where['o.status'] = 1; // 已完成
 		$where['o.create_time'] = ['between',strval(strtotime($now_date_7)*1000).",".strval(strtotime($now_date)*1000)];
 
+		$order_total_7 = Order::where(['store_code'=>$code,'status'=>1, 'create_time'=>['between',strval(strtotime($now_date_7)*1000).",".strval(strtotime($now_date)*1000)]])->count();
+
 		$money_list_7 = db('order')->alias("o")
 		   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
-		   ->field("g.goods_name,sum(g.subtotal_price) as revenue,count(g.order_id) as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,0 as mid")
+		   ->field("g.goods_name,sum(g.subtotal_price) as revenue,{$order_total_7} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,0 as mid")
 		   ->where($where)
   		   ->group('g.goods_sn')
 		   ->select();
@@ -673,11 +675,12 @@ class OrderGoods extends Model
 		//    ->select();
 
 		$money_list_14 = [];
+		$order_number_total = Order::where(['store_code'=>$code, 'status'=>1, 'create_time'=>['between',strval(strtotime($now_date_14)*1000).",".strval(strtotime($now_date)*1000)]])->count();
 		if(intval($is_order_by_money)>1)
 		{
 			$money_list_14 = db('order')->alias("o")
 			   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
-			   ->field("g.goods_name,sum(g.subtotal_price) as revenue,count(g.order_id) as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,0 as mid,0 as future_goods_number_7")
+			   ->field("g.goods_name,sum(g.subtotal_price) as revenue,{$order_number_total} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,0 as mid,0 as future_goods_number_7")
 			   ->where($where_14)
 	  		   ->group('g.goods_sn')
 	  		   ->order("revenue", "desc")
@@ -685,7 +688,7 @@ class OrderGoods extends Model
 		} else {
 			$money_list_14 = db('order')->alias("o")
 			   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
-			   ->field("g.goods_name,sum(g.subtotal_price) as revenue,count(g.order_id) as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,0 as mid,0 as future_goods_number_7")
+			   ->field("g.goods_name,sum(g.subtotal_price) as revenue,{$order_number_total} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,0 as mid,0 as future_goods_number_7")
 			   ->where($where_14)
 	  		   ->group('g.goods_sn')
 	  		   ->order("goods_number", "desc")
@@ -693,11 +696,13 @@ class OrderGoods extends Model
 		}
 
 
+
 		$columns_14 = array_column($money_list_14, "goods_name");
 		$new_14 = [];
 		foreach ($money_list_14 as $key2 => $value2) {
 			$new_14[$columns_14[$key2]] = $value2;
 		}
+
 
 
 		 // 遍历 _7 查找
@@ -709,17 +714,17 @@ class OrderGoods extends Model
 		 		$new_14[$key3]['future_goods_number_7'] = 0;
 		 	} else {
 		 		// 存在，比销量
-		 		
 		 		$new_14[$key3]['future_goods_number_7'] = $new[$key3]['goods_number'];
 		 	}
 		 }
+
 
 		
 		$indic = 0;
 		$return = [];
 		foreach ($new_14 as $key4 => $value4) {
 
-			if($new_14[$key4]['goods_number']<$new_14[$key4]['future_goods_number_7'])
+			if($new_14[$key4]['goods_number']>$new_14[$key4]['future_goods_number_7'])
 			{
 
 

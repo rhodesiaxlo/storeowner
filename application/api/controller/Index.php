@@ -1011,6 +1011,22 @@ class Index extends BaseController
         $is_week = Request::instance()->param("is_week");
         $is_month = Request::instance()->param("is_month");
 
+        $date=date('Y-m-d');  //当前日期
+
+        $first=1; //$first =1 表示每周星期一为开始日期 0表示每周日为开始日期
+
+        $w=date('w',strtotime($date));  //获取当前周的第几天 周日是 0 周一到周六是 1 - 6
+
+        $now_start=date('Y-m-d',strtotime("$date -".($w ? $w - $first : 6).' days')); //获取本周开始日期，如果$w是0，则表示周日，减去 6 天
+
+        $now_end=date('Y-m-d',strtotime("$now_start +6 days"));  //本周结束日期
+
+        $last_start=date('Y-m-d',strtotime("$now_start - 7 days"));  //上周开始日期
+
+        $last_end=date('Y-m-d',strtotime("$now_start - 1 days"));  //上周结束日期
+
+
+
         if(is_null($is_today))
         {
             return $this->ajaxFail("type field can not be empty", [], 5000);
@@ -1041,8 +1057,8 @@ class Index extends BaseController
         } else {
             if(intval($is_week)>0&&2>intval($is_week))
             {
-                $end_date = date("Y-m-d 23:59:59", time());
-                $start_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
+                $end_date = $now_start;
+                $start_date = $now_end;    
             }
         }
 
@@ -1053,8 +1069,8 @@ class Index extends BaseController
         } else {
             if(intval($is_month)>0&&2>intval($is_month))
             {
-                $end_date = date("Y-m-d 23:59:59", time());
-                $start_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
+                $end_date = date("Y-m-1 23:59:59", time());
+                $start_date = date("Y-m-30 23:59:59", time());    
             }
         }
 
