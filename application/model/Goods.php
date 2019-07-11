@@ -83,7 +83,7 @@ class Goods extends Model
 
 
 		$list =   self::where($where)->limit(($page_no-1)*$record_no, $record_no)->select();
-		$number = sizeof($list);
+		$number = self::where($where)->count();
 		return [$list, $number];
 	}
 

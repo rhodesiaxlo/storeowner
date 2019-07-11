@@ -23,7 +23,7 @@ class GoodsSnap extends Model
 		$where['store_code'] = $store_code;
 		$timestr = strtotime($end_date);
 
-		$check_time = date("Y-m-d 0:0:0", $timestr);
+		$check_time = date("Y-m-d 23:0:0", $timestr);
 
 		$where['check_time'] = $check_time;
 
@@ -35,6 +35,8 @@ class GoodsSnap extends Model
 			$where1['store_code'] = $store_code;
 			$where1['is_forsale'] = 1;
 			$where1['goods_name'] = array('neq',"无码商品");
+			$where1['deleted'] = 0;
+
 
 			$on_shelf = Goods::where($where1)->count();
 
@@ -42,6 +44,8 @@ class GoodsSnap extends Model
 			$off_where['store_code'] = $store_code;
 			$off_where['is_forsale'] = 0;
 			$off_where['goods_name'] = array('neq',"无码商品");
+			$off_where['deleted'] = 0;
+
 
 
 			$off_shelf = Goods::where($off_where)->count();
@@ -49,11 +53,14 @@ class GoodsSnap extends Model
 
 			$inv_where['store_code'] = $store_code;
 			$inv_where['goods_name'] = array('neq',"无码商品");
+			$inv_where['deleted'] = 0;
+
 
 			$total_inv = Goods::where($inv_where)->sum('repertory');
 
 
-			$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code',['code'=>$store_code]);
+			$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code and deleted=0 and goods_name not like "%无码%" ',['code'=>$store_code]);
+
 
 			return [$on_shelf, $off_shelf, $total_inv, isset($warning)?$warning[0]['cc']:0];
 
@@ -72,22 +79,27 @@ class GoodsSnap extends Model
 		$where['is_forsale'] = 1;
 		$where['goods_name'] = array('notlike',"%无码%");
 
+		$where['deleted'] = 0;
+
 		$on_shelf = Goods::where($where)->count();
 
 
 		$off_where['store_code'] = $store_code;
 		$off_where['is_forsale'] = 0;
 		$off_where['goods_name'] = array('notlike',"%无码%");
+		$off_where['deleted'] = 0;
 
 		$off_shelf = Goods::where($off_where)->count();
 
 
 		$inv_where['store_code'] = $store_code;
 		$inv_where['goods_name'] = array('notlike',"%无码%");
+		$inv_where['deleted'] = 0;
+
 		$total_inv = Goods::where($inv_where)->sum('repertory');
 
 
-		$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code',['code'=>$store_code]);
+		$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code and goods_name not like "%无码%" and deleted=0 ',['code'=>$store_code]);
 
 
 		// 写入数据库
@@ -108,7 +120,7 @@ class GoodsSnap extends Model
 	{
 		// 选取 50个不在 goods_snap 中的 store_code,执行查询操作，写入数据库
 		// 
-		$later = date("Y-m-d 0:0:0", time());
+		$later = date("Y-m-d H:0:0", time());
 
 		$where['check_time'] = $later;
 

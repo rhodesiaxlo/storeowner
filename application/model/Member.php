@@ -47,7 +47,7 @@ class Member extends Model
 		$new_list = self::where($where)->field('id')->select();
 		$id_list = array_column($new_list, 'id');
 
-		$order_num = Order::where(['store_code'=>$store_code,'status'=>1, 'mid'=>array('in', $id_list)])->count();
+		$order_num = Order::where(['store_code'=>$store_code,'status'=>1, 'mid'=>array('in', $id_list),'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
 		
 		return [$all-$new,$new,$order_num];
 	}
@@ -160,7 +160,7 @@ class Member extends Model
 
 			$result['range'] = strval($start).'--'.strval($end);
 
-			$where['points'] = ['between', $start.",".$end];
+			$where['points'] = ['between', $start.",".strval(floatval($end-0.1))];
 			$where['store_code'] = $code;
 			// 计算积分在区间 start  end 范围内的会员的 个数
 			$result['count'] = self::where($where)->count();
@@ -215,11 +215,14 @@ class Member extends Model
 			$order_no = Order::where($tmp_where)->count();
 
 			$order_total = Order::where($tmp_where)->sum('receivable_price');
+			// if($value==5)
+			// 	exit("order total = {$order_total}  order no {$order_no}");
 
 			$per = $order_total/$order_no;
 
 			$m_con_list[$cur_mid] = $per;
 		}
+
 
 
 		
@@ -251,7 +254,7 @@ class Member extends Model
 		 	foreach ($ran_list as $key1 => $value1) {
 		 		// value 代表客单价
 		 		
-		 		if($value1['low'] < $value && $value< $value1['high'])
+		 		if($value1['low'] <= $value && $value< $value1['high'])
 		 		{
 
 		 			$ran_list[$key1]['num'] += 1;

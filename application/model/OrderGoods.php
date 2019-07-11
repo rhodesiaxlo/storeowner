@@ -211,9 +211,11 @@ class OrderGoods extends Model
 		$where['o.mid'] = 0; // 已完成
 		$where['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
 
+		$member_total = Order::where(['store_code'=>$code, 'status'=>1, 'mid'=>array('gt', 0),'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
+
 		$money_list = db('order')->alias("o")
 				   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
-				   ->field("o.pay_type,sum(g.subtotal_price) as revenue,count(g.order_id) as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,0 as mid")
+				   ->field("o.pay_type,sum(g.subtotal_price) as revenue,{$member_total} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,0 as mid")
 				   ->where($where)
 				   ->select();
 
@@ -223,9 +225,11 @@ class OrderGoods extends Model
 		$where2['o.mid'] = array('neq',0); // 已完成
 		$where2['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
 
+
+		$non_member_total = Order::where(['store_code'=>$code, 'status'=>1, 'mid'=>0,'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
 		$money_list2 = db('order')->alias("o")
 				   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
-				   ->field("o.pay_type,sum(g.subtotal_price) as revenue,count(g.order_id) as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,1 as mid")
+				   ->field("o.pay_type,sum(g.subtotal_price) as revenue,{$non_member_total} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,1 as mid")
 				   ->where($where2)
 				   ->select();
 
@@ -277,12 +281,14 @@ class OrderGoods extends Model
 		$where['o.status'] = 1; // 已完成
 		$where['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
 
+		$order_number = Order::where(['store_code'=>$code, 'status'=>1, 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
+
 		if(intval($is_order_by_money) > 0)
 		{
 			$money_list = db('order')->alias("o")
 				   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
 				   ->join("pos_user u","u.store_code=o.store_code and u.id=o.uid")
-				   ->field("u.realname,o.pay_type,sum(g.subtotal_price) as revenue,count(g.order_id) as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
+				   ->field("u.realname,o.pay_type,sum(g.subtotal_price) as revenue,{$order_number} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
 				   ->where($where)
 				   ->group('o.uid')
 				   ->order('revenue', 'desc')
@@ -292,7 +298,7 @@ class OrderGoods extends Model
 			$money_list = db('order')->alias("o")
 				   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
 				   ->join("pos_user u","u.store_code=o.store_code and u.id=o.uid")
-				   ->field("u.realname,o.pay_type,sum(g.subtotal_price) as revenue,count(g.order_id) as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
+				   ->field("u.realname,o.pay_type,sum(g.subtotal_price) as revenue,{$order_number} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
 				   ->where($where)
 				   ->group('o.uid')
 				   ->order('goods_number', 'desc')
@@ -411,11 +417,16 @@ class OrderGoods extends Model
 				      ->field("g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time,g.goods_num")
 				   ->sum('g.goods_num');
 
-		$total_customerpay = db('order')->alias("o")
-		   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id and g.goods_sn!='无码商品'")
-		   ->where($where)
-		      ->field("g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time,g.goods_num")
-		   ->sum('o.practical_price');
+		// $total_customerpay = db('order')->alias("o")
+		//    ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id and g.goods_sn!='无码商品'")
+		//    ->where($where)
+		//       ->field("g.goods_name,g.order_id,o.id as o_id, o.store_code as o_store_code, o.status,o.create_time,g.goods_num")
+		//    ->sum('o.practical_price');
+		//    
+		$total_customerpay = 0;
+		foreach ($money_list as $key => $value) {
+			$total_customerpay +=$value['revenue'];
+		}
 
 		$list_no = sizeof($money_list);
 
@@ -513,18 +524,21 @@ class OrderGoods extends Model
 		 	}
 		 }
 
-		 for($i = sizeof($new_14)-1;$i>=0;$i--)
-		 {
-		 	if($new_14[$i]['future_goods_number'] == 10000)
-		 		unset($new_14[$i]);
-	
-		 }
+
+		 $last_ret = [];
+		foreach ($new_14 as $key => $value) {
+			if($value['future_goods_number']!=10000)
+			{
+				$last_ret[] = $value;
+			}
+		}
 
 
-		$total_number = sizeof($new_14);
+
+		$total_number = sizeof($last_ret);
 		$indic = 0;
 		$return = [];
-		foreach ($new_14 as $key4 => $value4) {
+		foreach ($last_ret as $key4 => $value4) {
 			$indic +=1;
 			if(($indic > ($page_no-1)*$record_no) && ($indic <= ($page_no)*$record_no))
 			{

@@ -172,6 +172,7 @@ class Order extends Model
 		
 		$where['store_code'] = $code;
 		$where['status'] = array('in',[1,3]);
+
 		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
 		{
 			$where['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
@@ -197,6 +198,7 @@ class Order extends Model
 
 		unset($where['pay_type']);
 		$where['pay_type'] = 1; // 支付宝
+
 		$order_alibaba_money = self::where($where)->sum("receivable_price");
 
 
@@ -204,7 +206,7 @@ class Order extends Model
 		$where['pay_type'] = 2; // 支付宝
 		$order_wechat_money = self::where($where)->sum("receivable_price");
 
-
+		//exit(" cash = {$order_cash_money}  ali = {$order_alibaba_money}  wechat = {$order_wechat_money}");
 		unset($where['pay_type']);
 		unset($where['status']);
 		$where['status'] = 3;
@@ -221,17 +223,22 @@ class Order extends Model
 		$refund_wechat = self::where($where)->sum("receivable_price");
 
 
-		$profit_where['g.store_code'] = $code;
+		$profit_where['o.store_code'] = $code;
 		$profit_where['o.status'] = array('in',[3,1]);
+		//$profit_where['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
 		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
 		{
 			$profit_where['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
 		}
 
+
+		$to = Order::where(['store_code'=>$code, 'status'=>array('in',[1,3]), 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->sum('receivable_price');
+
+
 		// 计算利润
 		$money_list = db('order')->alias("o")
 					->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
-					->field("sum(receivable_price) as revenue, sum(g.cost_price*g.goods_num) as cost_basic")
+					->field("sum(o.receivable_price) as revenue, sum(g.cost_price*g.goods_num) as cost_basic")
 					->where($profit_where)
 					->select();
 
@@ -241,7 +248,7 @@ class Order extends Model
 		{
 			
 		} else {
-			$profit = number_format($money_list[0]['revenue'] - $money_list[0]['cost_basic'], 2);
+			$profit = number_format($order_cash_money+$order_alibaba_money+$order_wechat_money- $money_list[0]['cost_basic'], 2);
 		}
 
 		//exit("total order no = {$order_total_number}  refund order no = {$order_refund_number}  refund money = {$order_refund_money}  order cash = {$order_cash_money} order ali = {$order_alibaba_money}  order wechat = {$order_wechat_money}  ==".json_encode($money_list));
@@ -405,7 +412,7 @@ class Order extends Model
 			$end += $step;
 			$tmp['range'] = strval(intval($starter)).'--'.strval(intval($end));
 			
-			$where['receivable_price'] = ['between',strval($starter).",".strval($end-1)];
+			$where['receivable_price'] = ['between',strval($starter).",".strval($end-0.1)];
 			$tmp['count'] = self::where($where)->count();
 
 			$ret[] = $tmp;
