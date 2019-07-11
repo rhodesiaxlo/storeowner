@@ -70,7 +70,7 @@ class OrderGoods extends Model
 
 		
 		
-		return [ $no_list,$money_list];
+		return [$money_list,  $no_list];
 	}
 
 	public static function getOrderByCategory($code, $start_date, $end_date,$is_order_by_money)
