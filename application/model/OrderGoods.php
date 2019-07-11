@@ -724,7 +724,7 @@ class OrderGoods extends Model
 		$return = [];
 		foreach ($new_14 as $key4 => $value4) {
 
-			if($new_14[$key4]['goods_number']>$new_14[$key4]['future_goods_number_7'])
+			if($new_14[$key4]['goods_number']>$new_14[$key4]['future_goods_number_7']&&$new_14[$key4]['future_goods_number_7']==0)
 			{
 
 

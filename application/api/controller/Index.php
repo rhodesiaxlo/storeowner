@@ -1297,9 +1297,10 @@ class Index extends BaseController
     public function cronHourlyOrderTrend()
     {
         $later = date("Y-m-d H:0:0", time());
-        $earlier = date("Y-m-d H:0:0", strtotime($later)-60*60);
+        $hour = date("H", time());
+        $hour_1 = $hour -1;
+        $earlier = date("Y-m-d {$hour_1}:0:0", time());
 
-        
         $result = ConsumePerOrder::createRecord(null, $earlier, $later, 1);
          return $this->ajaxSuccess("get shift record success", $this->getReturn($result, 0));
     }
