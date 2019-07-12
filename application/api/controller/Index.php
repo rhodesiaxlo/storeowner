@@ -220,7 +220,7 @@ class Index extends BaseController
         
         $start_date = Request::instance()->param("start_date");
         $end_date = Request::instance()->param("end_date");
-        list($total_order_no, $total_revenue, $cash_revenue, $alibaba_revenue,  $wechat_revenue, $refund_money, $refund_order_no, $profit, $refund_cash, $refund_ali, $refund_wechat) = order::getSalesOutlook($this->store_code, $start_date, $end_date);
+        list($total_order_no, $total_revenue, $cash_revenue, $alibaba_revenue,  $wechat_revenue, $refund_money, $refund_order_no, $profit, $refund_cash, $refund_ali, $refund_wechat, $complte_profit, $complete_cost_basic) = order::getSalesOutlook($this->store_code, $start_date, $end_date);
 
         $tmp['total_order_no'] = $total_order_no;
         $tmp['total_revenue'] = $total_revenue;
@@ -233,6 +233,9 @@ class Index extends BaseController
         $tmp['refund_cash'] = $refund_cash;
         $tmp['refund_ali'] = $refund_ali;
         $tmp['refund_wechat'] = $refund_wechat;
+        $tmp['complete_profit'] = $complte_profit;
+        $tmp['complete_cost_basic'] = $complete_cost_basic;
+
 
 
     	return $this->ajaxSuccess('get order list success', $this->getReturn($tmp, 1));
@@ -269,6 +272,7 @@ class Index extends BaseController
 
         if(intval($delta/(60*60*24*28))>=1)
         {
+
             $type = 3;
         } elseif (intval($delta/(60*60*24))>=1) {
             $type = 2;
@@ -358,8 +362,8 @@ class Index extends BaseController
                 // $end_date = date("Y-m-d 0:0:0", time());
                 // $start_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
                 
-                $end_date = $last_start;
-                $start_date = $last_end; 
+                $end_date = $last_end;
+                $start_date = $last_start; 
 
 
             }
@@ -372,8 +376,8 @@ class Index extends BaseController
         } else {
             if(intval($is_month)==1)
             {
-                $end_date = date("Y-m-d 0:0:0", time());
-                $start_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
+                $end_date = date("Y-m-30 0:0:0", time());
+                $start_date = date("Y-m-1 23:59:59", time());    
             }
         }
 
@@ -488,8 +492,8 @@ class Index extends BaseController
                 // $start_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
 
 
-                $end_date = $last_start;
-                $start_date = $last_end;   
+                $end_date = $last_end;
+                $start_date = $last_start;   
 
             }
         }
@@ -501,8 +505,8 @@ class Index extends BaseController
         } else {
             if(intval($is_month)==1)
             {
-                $end_date = date("Y-m-d 0:0:0", time());
-                $start_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
+                $end_date = date("Y-m-30 23:59:59", time());
+                $start_date = date("Y-m-1 23:59:59", time());    
             }
         }
 
@@ -636,8 +640,8 @@ class Index extends BaseController
                 // $end_date = date("Y-m-d 23:59:59", strtotime("-7 day"));
                 // $start_date = date("Y-m-d 23:59:59", strtotime("-14 day"));    
                 
-                $end_date = $last_start;
-                $start_date = $last_end;   
+                $end_date = $last_end;
+                $start_date = $last_start;   
             }
         }
 
@@ -649,8 +653,11 @@ class Index extends BaseController
         } else {
             if(intval($is_current_month)==1)
             {
-                $end_date = date("Y-m-d 23:59:59", time()); 
-                $start_date = date("Y-m-d 23:59:59", strtotime("-30 day"));    
+                $month = date('m', time());
+                $month_1 = $month + 1;
+                $end_date = date("Y-{$month_1}-1 0:0:0", time()); 
+                $end_date = date("Y-m-d H:i:s", strtotime($end_date)-1);
+                $start_date = date("Y-m-1 0:0:0", time());    
             }
         }
 
@@ -660,12 +667,16 @@ class Index extends BaseController
         } else {
             if(intval($is_previous_month)==1)
             {
-                $end_date = date("Y-m-d 23:59:59", strtotime("-30 day")); 
-                $start_date = date("Y-m-d 23:59:59", strtotime("-60 day"));    
+                $month = date('m', time());
+                $month_1 = $month - 1;
+
+                $end_date = date('Y-m-1 0:0:0',time());
+                $end_date = date("Y-m-d H:i:s", strtotime($end_date)-1); 
+                $start_date = date("Y-{$month_1}-1 0:0:0", time());    
             }
         }
 
-        //exit("start_date = {$start_date}  end date = {$end_date}");
+        exit("start_date = {$start_date}  end date = {$end_date}");
 
 
 
@@ -1057,8 +1068,8 @@ class Index extends BaseController
         } else {
             if(intval($is_week)>0&&2>intval($is_week))
             {
-                $end_date = $now_start;
-                $start_date = $now_end;    
+                $end_date = $now_end;
+                $start_date = $now_start;    
             }
         }
 
@@ -1069,10 +1080,12 @@ class Index extends BaseController
         } else {
             if(intval($is_month)>0&&2>intval($is_month))
             {
-                $end_date = date("Y-m-1 23:59:59", time());
-                $start_date = date("Y-m-30 23:59:59", time());    
+                $end_date = date("Y-m-30 23:59:59", time());
+                $start_date = date("Y-m-1 23:59:59", time());    
             }
         }
+
+        //exit("start = {$start_date}  end date = {$end_date}");
 
 
 

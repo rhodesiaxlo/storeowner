@@ -5,6 +5,7 @@ use think\Model;
 use think\Db;
 use app\model\Order;
 use app\model\Category;
+use app\model\User;
 
 class OrderGoods extends Model
 {
@@ -84,11 +85,16 @@ class OrderGoods extends Model
 
 		$order_no = Order::where(['store_code'=>$code,'status'=>1, 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
 		
-		// $allcat = Category::where(1)->select();
-		// $cat_ar = [];
-		// foreach ($allcat as $key => $value) {
-		// 	$cat_ar[$value->id] = $order_no = Order::where(['store_code'=>$code,'status'=>1, 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)],''])->count();
-		// }
+		$allcat = Category::where(1)->select();
+		$cat_ar = [];
+		foreach ($allcat as $key => $value) {
+			$cat_ar[$value->id]  = $money_list = db('order_goods')->alias("g")
+					   ->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
+					   ->join("pos_goods g2", "g2.store_code=g.store_code and g2.goods_sn=g.goods_sn")
+					   ->where(['o.status'=>1, 'o.create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)],'g.store_code'=>$code, "g2.cat_id"=>$value->id])
+					   ->count();
+		}
+
 
 		if(intval($is_order_by_money)>0)
 		{
@@ -117,6 +123,10 @@ class OrderGoods extends Model
 					   ->order("goods_number", "desc")
 					   ->select();
 
+		}
+
+		foreach ($money_list as $key => $value) {
+			$money_list[$key]['order_number'] = $cat_ar[$money_list[$key]['cat_id']];
 		}
 
 
@@ -159,6 +169,12 @@ class OrderGoods extends Model
 		$where['o.status'] = 1; // 已完成
 		$where['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
 
+		$type = [0, 1,2,3];
+		$type_list = [];
+		foreach ($type as $key => $value) {
+			$type_list[$value] = Order::where(['store_code'=>$code, 'status'=>1, 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
+		}
+
 		if(intval($is_order_by_money) > 0 )
 		{
 			$money_list = db('order')->alias("o")
@@ -178,6 +194,10 @@ class OrderGoods extends Model
 				   ->order('goods_number', 'desc')
 				   ->select();
 
+		}
+
+		foreach ($money_list as $key => $value) {
+			$money_list[$key]['order_number'] = $type_list[$money_list[$key]['pay_type']];
 		}
 
 		// 不包含五码商品
@@ -240,6 +260,15 @@ class OrderGoods extends Model
 				   ->field("o.pay_type,sum(g.subtotal_price) as revenue,{$non_member_total} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic,1 as mid")
 				   ->where($where2)
 				   ->select();
+		if(isset($money_list[0])&&$money_list[0]['cost_basic']==null)
+		{
+			$money_list = [];
+		}
+
+		if(isset($money_list2[0])&&$money_list2[0]['cost_basic']==null)
+		{
+			$money_list2= [];
+		}
 
 		$money_list3 = array_merge($money_list, $money_list2);
 		// 不包含五码商品
@@ -291,12 +320,21 @@ class OrderGoods extends Model
 
 		$order_number = Order::where(['store_code'=>$code, 'status'=>1, 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
 
+		// 所有收银员
+		$list1 = User::where(['store_code'=>$code])->select();
+		$mid_list = array_column($list1, 'id');
+
+		$mid_arr = [];
+		foreach ($mid_list as $key => $value) {
+			$mid_arr[$value] = Order::where(['store_code'=>$code, 'status'=>1, 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)],'uid'=>$value])->count();
+		}
+
 		if(intval($is_order_by_money) > 0)
 		{
 			$money_list = db('order')->alias("o")
 				   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
 				   ->join("pos_user u","u.store_code=o.store_code and u.id=o.uid")
-				   ->field("u.realname,o.pay_type,sum(g.subtotal_price) as revenue,{$order_number} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
+				   ->field("o.uid as uid, u.realname,o.pay_type,sum(g.subtotal_price) as revenue,0 as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
 				   ->where($where)
 				   ->group('o.uid')
 				   ->order('revenue', 'desc')
@@ -306,13 +344,25 @@ class OrderGoods extends Model
 			$money_list = db('order')->alias("o")
 				   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
 				   ->join("pos_user u","u.store_code=o.store_code and u.id=o.uid")
-				   ->field("u.realname,o.pay_type,sum(g.subtotal_price) as revenue,{$order_number} as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
+				   ->field("o.uid as uid, u.realname,o.pay_type,sum(g.subtotal_price) as revenue,0 as order_number, sum(goods_num) as goods_number, sum(g.goods_num*g.goods_price) as sales, sum(g.cost_price*g.goods_num) as cost_basic")
 				   ->where($where)
 				   ->group('o.uid')
 				   ->order('goods_number', 'desc')
 				   ->select();
 
 		}
+
+
+		foreach ($money_list as $key => $value) {
+
+			if(isset($mid_arr[$money_list[$key]['uid']]))
+			{
+				$money_list[$key]['order_number'] = $mid_arr[$money_list[$key]['uid']];	
+			}
+			
+		}
+
+
 		// $money_list = db('order')->alias("o")
 		// 		   ->join("pos_order_goods g", "o.store_code=g.store_code and o.id=g.order_id")
 		// 		   ->join("pos_user u","u.store_code=o.store_code and u.id=o.uid")

@@ -31,6 +31,7 @@ class Goods extends Model
 			$where['goods_sn'] = array("like", "%".$barcode."%");;
 		}
 
+		//$where['goods_name'] = array("notlike", "%无码商品%");
 		if(!empty($goods_name))
 		{
 			$where['goods_name'] = array("like", "%".$goods_name."%");
@@ -45,6 +46,7 @@ class Goods extends Model
 		{
 			$where['type'] = $type2;
 		}
+
 
 		$where['deleted'] = 0;
 
@@ -66,6 +68,8 @@ class Goods extends Model
 			}
 		}
 
+
+		$where['goods_name'] = array("notlike", "%无码商品%");
 		if(!empty($goods_name))
 		{
 			$where['goods_name'] = array("like", "%".$goods_name."%");
@@ -80,6 +84,8 @@ class Goods extends Model
 		{
 			$where['is_forsale'] = $is_forsale;;
 		}
+
+
 
 
 		$list =   self::where($where)->limit(($page_no-1)*$record_no, $record_no)->select();

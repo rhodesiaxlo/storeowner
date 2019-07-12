@@ -180,6 +180,28 @@ class Order extends Model
 
 		$order_total_number = self::where($where)->count();
 
+
+		$where_comple['store_code'] = $code;
+		$where_comple['status'] = 1;
+
+		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
+		{
+			$where_comple['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		}
+
+		$order_total_number_complete = self::where($where)->count();
+
+		$where_refund['store_code'] = $code;
+		$where_refund['status'] = 3;
+
+		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
+		{
+			$where_refund['create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		}
+
+		$order_total_number_refund = self::where($where)->count();
+
+
 		$where_refund['store_code'] = $code;
 		$where_refund['status'] = 3;
 		if(!empty($start_date)&&!empty($end_date)&&strtotime($end_date)>strtotime($start_date))
@@ -242,6 +264,19 @@ class Order extends Model
 					->where($profit_where)
 					->select();
 
+		$complete_where_1['o.store_code'] = $code;
+		$complete_where_1['o.status'] = 1;
+		$complete_where_1['o.create_time'] = ['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)];
+		//$complete_where_1['o.store_code'] = $code;
+
+		$money_list_com = db('order_goods')->alias("g")
+					->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
+					->field("sum(o.receivable_price) as revenue, sum(g.cost_price*g.goods_num) as cost_basic")
+					->where($complete_where_1)
+					->select();
+
+		$complete_cost_basic = $money_list_com[0]['cost_basic'];
+
 
 		$profit = 0;
 		if(empty($money_list))
@@ -251,9 +286,13 @@ class Order extends Model
 			$profit = number_format($order_cash_money+$order_alibaba_money+$order_wechat_money- $money_list[0]['cost_basic'], 2);
 		}
 
+		$complete_profit = $order_cash_money +$order_alibaba_money+$order_wechat_money-$order_refund_money-$complete_cost_basic;
+
+
+
 		//exit("total order no = {$order_total_number}  refund order no = {$order_refund_number}  refund money = {$order_refund_money}  order cash = {$order_cash_money} order ali = {$order_alibaba_money}  order wechat = {$order_wechat_money}  ==".json_encode($money_list));
 		
-		return [$order_total_number, $order_cash_money+$order_alibaba_money+$order_wechat_money, $order_cash_money, $order_alibaba_money, $order_wechat_money, $order_refund_money, $order_refund_number, $profit, $refund_cash, $refund_ali, $refund_wechat];
+		return [$order_total_number, $order_cash_money+$order_alibaba_money+$order_wechat_money, $order_cash_money, $order_alibaba_money, $order_wechat_money, $order_refund_money, $order_refund_number, $profit, $refund_cash, $refund_ali, $refund_wechat,$complete_profit, $complete_cost_basic];
 
 
 	}

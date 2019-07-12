@@ -148,12 +148,16 @@ class ConsumePerOrder extends Model
 			// 向前推一天
 			//$later = date("Y-m-d 23:59:59", strtotime($later)-60*60*24);			
 
-
+             $now =date("Y-m-d 23:59:59", time());
 
 			//exit(" start = {$start_date}  later = {$later}");;
 			while(strtotime($later) >= strtotime($start_date))
 			{
-				$time_list[] = $later;
+				if($later <= $now)
+				{
+					$time_list[] = $later;	
+				}
+				
 
 				$later  = date("Y-m-d 23:59:59", strtotime($later)-60*60*24);
 			}
@@ -206,10 +210,12 @@ class ConsumePerOrder extends Model
 		}
 
 		$where['store_code'] = $code;
-		$where['check_date'] = ['between', $start_date.",".$end_date];
+		//$where['check_date'] = ['between', $start_date.",".$end_date];
+		$where['check_date'] = array('in', $time_list);
 		$where['code'] = $type;
 		$count = self::where($where)->count();
 		$list =  self::where($where)->order('check_date','desc')->order('check_date', 'asc')->select();
+		exit(json_encode($list));
 		return [$list, $count];
 	}
 

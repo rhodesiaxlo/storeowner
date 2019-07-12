@@ -34,7 +34,7 @@ class GoodsSnap extends Model
 			
 			$where1['store_code'] = $store_code;
 			$where1['is_forsale'] = 1;
-			$where1['goods_name'] = array('neq',"无码商品");
+			$where1['goods_name'] = array('notlike',"%无码商品%");
 			$where1['deleted'] = 0;
 
 
@@ -43,7 +43,7 @@ class GoodsSnap extends Model
 
 			$off_where['store_code'] = $store_code;
 			$off_where['is_forsale'] = 0;
-			$off_where['goods_name'] = array('neq',"无码商品");
+			$off_where['goods_name'] = array('notlike',"%无码商品%");
 			$off_where['deleted'] = 0;
 
 
@@ -52,14 +52,14 @@ class GoodsSnap extends Model
 
 
 			$inv_where['store_code'] = $store_code;
-			$inv_where['goods_name'] = array('neq',"无码商品");
+			$inv_where['goods_name'] = array('notlike',"%无码商品%");
 			$inv_where['deleted'] = 0;
 
 
 			$total_inv = Goods::where($inv_where)->sum('repertory');
 
 
-			$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code and deleted=0 and goods_name not like "%无码%" ',['code'=>$store_code]);
+			$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code and deleted=0 and goods_name not like "%无码商品%" ',['code'=>$store_code]);
 
 
 			return [$on_shelf, $off_shelf, $total_inv, isset($warning)?$warning[0]['cc']:0];
@@ -77,7 +77,7 @@ class GoodsSnap extends Model
 
 		$where['store_code'] = $store_code;
 		$where['is_forsale'] = 1;
-		$where['goods_name'] = array('notlike',"%无码%");
+		$where['goods_name'] = array('notlike',"%无码商品%");
 
 		$where['deleted'] = 0;
 
@@ -86,20 +86,20 @@ class GoodsSnap extends Model
 
 		$off_where['store_code'] = $store_code;
 		$off_where['is_forsale'] = 0;
-		$off_where['goods_name'] = array('notlike',"%无码%");
+		$off_where['goods_name'] = array('notlike',"%无码商品%");
 		$off_where['deleted'] = 0;
 
 		$off_shelf = Goods::where($off_where)->count();
 
 
 		$inv_where['store_code'] = $store_code;
-		$inv_where['goods_name'] = array('notlike',"%无码%");
+		$inv_where['goods_name'] = array('notlike',"%无码商品%");
 		$inv_where['deleted'] = 0;
 
 		$total_inv = Goods::where($inv_where)->sum('repertory');
 
 
-		$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code and goods_name not like "%无码%" and deleted=0 ',['code'=>$store_code]);
+		$warning = Db::query('select count(*) as cc from pos_goods where repertory_caution > repertory and store_code=:code and goods_name not like "%无码商品%" and deleted=0 ',['code'=>$store_code]);
 
 
 		// 写入数据库
