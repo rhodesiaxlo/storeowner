@@ -676,7 +676,7 @@ class Index extends BaseController
             }
         }
 
-        exit("start_date = {$start_date}  end date = {$end_date}");
+        // exit("start_date = {$start_date}  end date = {$end_date}");
 
 
 
