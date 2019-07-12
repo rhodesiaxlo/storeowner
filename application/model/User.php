@@ -102,14 +102,14 @@ class User extends Model
 		// 库存不足数
 		// 商品数量
 		$goods_num = db('goods')
-		   ->where(['store_code'=>$info->store_code])
+		   ->where(['store_code'=>$info->store_code,'deleted'=>0,'goods_name'=>array('notlike',"%无码商品%")])
 		   ->count();
 
 		$repertory_sum = db('goods')
-		   ->where(['store_code'=>$info->store_code])
+		   ->where(['store_code'=>$info->store_code,'deleted'=>0,'goods_name'=>array('notlike',"%无码商品%")])
 		   ->sum('repertory');
 
-		$sql="select count(*) as num from pos_goods where store_code='{$info->store_code}' and repertory<repertory_caution";
+		$sql="select count(*) as num from pos_goods where store_code='{$info->store_code}' and repertory<repertory_caution and deleted=0  and goods_name not like '%无码商品%' ";
 		$repertory_warning = self::query($sql);
 
 		$info['goods_num'] = $goods_num;

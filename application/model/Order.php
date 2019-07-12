@@ -275,7 +275,7 @@ class Order extends Model
 			$where['o.store_code'] = $code;
 		}
 
-		if(is_numeric($staff_id)&&intval($staff_id)>1)
+		if(is_numeric($staff_id)&&intval($staff_id)>=1)
 		{
 			$where['o.uid'] = $staff_id;
 		}
