@@ -362,8 +362,8 @@ class Index extends BaseController
                 // $end_date = date("Y-m-d 0:0:0", time());
                 // $start_date = date("Y-m-d 23:59:59", strtotime("-7 day"));    
                 
-                $end_date = $last_end;
-                $start_date = $last_start; 
+                $end_date = $now_end;
+                $start_date = $now_start; 
 
 
             }
@@ -376,10 +376,14 @@ class Index extends BaseController
         } else {
             if(intval($is_month)==1)
             {
-                $end_date = date("Y-m-30 0:0:0", time());
+                $month = date('m', time());
+                $month_1 = $month + 1;
+                $end_date = date("Y-{$month_1}-1 0:0:0");
+                $end_date = date("Y-m-d H:i:s", strtotime($end_date)-1);
                 $start_date = date("Y-m-1 23:59:59", time());    
             }
         }
+
 
 
         if(is_null($type))
@@ -392,6 +396,7 @@ class Index extends BaseController
         {
             return $this->ajaxFail("is_order_by_money field can not be empty", [], 1002);
         }
+        exit("start_date {$start_date} end _date = {$end_date}");
 
         // get customer filter 
         $this->getCustomFilter(['type','start_date','end_date','is_today','is_yesterday','is_week','is_month','is_order_by_money']);
