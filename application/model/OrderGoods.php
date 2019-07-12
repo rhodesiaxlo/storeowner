@@ -92,8 +92,10 @@ class OrderGoods extends Model
 					   ->join("pos_order o", "o.store_code=g.store_code and o.id=g.order_id")
 					   ->join("pos_goods g2", "g2.store_code=g.store_code and g2.goods_sn=g.goods_sn")
 					   ->where(['o.status'=>1, 'o.create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)],'g.store_code'=>$code, "g2.cat_id"=>$value->id])
+					   ->group('o.id')
 					   ->count();
 		}
+
 
 
 		if(intval($is_order_by_money)>0)
@@ -172,7 +174,7 @@ class OrderGoods extends Model
 		$type = [0, 1,2,3];
 		$type_list = [];
 		foreach ($type as $key => $value) {
-			$type_list[$value] = Order::where(['store_code'=>$code, 'status'=>1, 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)]])->count();
+			$type_list[$value] = Order::where(['store_code'=>$code, 'status'=>1, 'create_time'=>['between',strval(strtotime($start_date)*1000).",".strval(strtotime($end_date)*1000)],'pay_type'=>$value])->count();
 		}
 
 		if(intval($is_order_by_money) > 0 )

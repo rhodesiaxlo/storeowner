@@ -1222,6 +1222,22 @@ class Index extends BaseController
         $max               = Request::instance()->param("max");
         $num               = Request::instance()->param("num");
 
+
+        $date=date('Y-m-d');  //当前日期
+
+        $first=1; //$first =1 表示每周星期一为开始日期 0表示每周日为开始日期
+
+        $w=date('w',strtotime($date));  //获取当前周的第几天 周日是 0 周一到周六是 1 - 6
+
+        $now_start=date('Y-m-d',strtotime("$date -".($w ? $w - $first : 6).' days')); //获取本周开始日期，如果$w是0，则表示周日，减去 6 天
+
+        $now_end=date('Y-m-d',strtotime("$now_start +6 days"));  //本周结束日期
+
+        $last_start=date('Y-m-d',strtotime("$now_start - 7 days"));  //上周开始日期
+
+        $last_end=date('Y-m-d',strtotime("$now_start - 1 days"));  //上周结束日期
+
+
         if(!is_numeric($min))
         {
             return $this->ajaxFail("min id ilegal", [], 1000);
@@ -1241,37 +1257,33 @@ class Index extends BaseController
         if(is_numeric($one_week)&&intval($one_week)==1)
         {
             $tmp = strtotime($start_date);
-            $end_date = date("Y-m-d H:i:s", $tmp - 60*60*24*7);
+            $start_date = date("Y-m-d 0:0:0", time() - 60*60*24*7);
+            $end_date = date("Y-m-d 0:0:0", time());
+            $end_date = date("Y-m-d H:i:s", strtotime($end_date)-1);
         }
 
         if(is_numeric($two_weeks)&&intval($two_weeks)==1)
         {
             $tmp = strtotime($start_date);
-            $end_date = date("Y-m-d H:i:s", $tmp - 60*60*24*7*2);   
+            $start_date = date("Y-m-d 0:0:0", time() - 60*60*24*7*2);   
+            $end_date = date("Y-m-d 0:0:0", time());
+            $end_date = date("Y-m-d H:i:s", strtotime($end_date)-1);   
         }
 
         if(is_numeric($one_month)&&intval($one_month)==1)
         {
+
             $tmp = strtotime($start_date);
-            $tmp_m = date("m", $tmp);
-            $tmp_y = date("Y", $tmp);
+            $start_date = date("Y-m-d 0:0:0", time() - 60*60*24*30);   
+            $end_date = date("Y-m-d 0:0:0", time());
+            $end_date = date("Y-m-d H:i:s", strtotime($end_date)-1);  
 
-            $m_1 = $tmp_m -1;
-            $y_1 = $tmp_y -1;
-
-            if($tmp_m>1)
-            {
-                $end_date = date("Y-{$m_1}-d H:i:s", strtotime($start_date));
-            } else {
-                $end_date = date("{$y_1}-12-d H:i:s", strtotime($start_date));
-            }
         }
 
 
         $this->getCustomFilter(['one_week','two_weeks','one_month','start_date','end_date','min','max','num']);
 
 
-        //exit(" start date = {$start_date}  end date = {$end_date}");
         list($list, $member_total) = Member::conByPerson($this->store_code, $start_date, $end_date, $min, $max, $num);
 
     	return $this->ajaxSuccess(" success", $this->getReturn($list, $member_total));
