@@ -183,14 +183,14 @@ class Member extends Model
 	public static function conByPerson($code, $start_date, $end_date, $min, $max, $num)
 	{
 
-		// exit(" start date = {$start_date}  end date = {$end_date}");
+		//exit(" start date = {$start_date}  end date = {$end_date}");
 		// 筛选出这段时间所有的会员个数和会员列表
 		$order_where['store_code'] = $code;
 		$order_where['status'] = 1;
-		$order_where['mid'] = ['neq', 0];
+		$order_where['mid'] = ['<>', 0];
 		$order_where['create_time'] = ['between', strval(strtotime($start_date)*1000).','.strval(strtotime($end_date)*1000)];
 		//$mid_list = Member::where(['store_code'=>$code])->field('id')->select();
-		$mid_list = Order::where($order_where)->field('mid')->select();
+		$mid_list = Order::where($order_where)->field('mid')->group('mid')->select();
 
 
 		$id_list = [];
@@ -205,7 +205,7 @@ class Member extends Model
 
 		$total = sizeof($id_list);
 
-
+		//exit(json_encode($id_list));
 
 		$m_con_list  = [];
 		// 遍历会员列表，计算单价
@@ -230,6 +230,8 @@ class Member extends Model
 
 			$m_con_list[$cur_mid] = $per;
 		}
+
+		//exit(json_encode($m_con_list));
 
 
 
