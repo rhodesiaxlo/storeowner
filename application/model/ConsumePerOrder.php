@@ -57,6 +57,7 @@ class ConsumePerOrder extends Model
 			$list[] = $value['store_code'];
 			unset($where);
 			$where['o.store_code'] = $value['store_code'];
+			// exit("earlier {$earlier}  later {$later}");
 			$where['o.create_time'] = ['between',strval(strtotime($earlier)*1000).",".strval(strtotime($later)*1000)];
 			$where['o.status'] = 1;
 
@@ -148,7 +149,7 @@ class ConsumePerOrder extends Model
 			// 向前推一天
 			//$later = date("Y-m-d 23:59:59", strtotime($later)-60*60*24);			
 
-             $now =date("Y-m-d 23:59:59", time());
+             $now =date("Y-m-d H:i:s", time());
 
 			//exit(" start = {$start_date}  later = {$later}");;
 			while(strtotime($later) >= strtotime($start_date))
@@ -177,14 +178,14 @@ class ConsumePerOrder extends Model
 
 
 
-		//exit(json_encode($time_list));
 		foreach ($time_list as $key => $value) {
 			unset($mywhere);
 			$mywhere['store_code'] = $code;
-			$mywhere['check_date'] = $value;
+			$mywhere['check_date'] = date("Y-m-d H:i:s", strtotime($value)-60*60*24);
 			$mywhere['code'] = $type;
 			$exist = self::where($mywhere)->find();
 
+			// exit(json_encode($exist));
 			if(is_null($exist))
 			{
 				if($type == 3)
@@ -201,9 +202,10 @@ class ConsumePerOrder extends Model
 
 					self::createRecord($code, $value, $end, $type);
 				} elseif ($type ==2) {
-					self::createRecord($code, $value, strtotime($value) + 60*60*24, $type);
+
+					self::createRecord($code, date("Y-m-d H:i:s", strtotime($value)-60*60*24), $value, $type);
 				} elseif ($type ==1) {
-					self::createRecord($code, $value, strtotime($value) + 60*60, $type);
+					self::createRecord($code, $value, date("Y-m-d H:i:s", strtotime($value) + 60*60), $type);
 				}	
 			}
 			
@@ -213,6 +215,8 @@ class ConsumePerOrder extends Model
 		//$where['check_date'] = ['between', $start_date.",".$end_date];
 		$where['check_date'] = array('in', $time_list);
 		$where['code'] = $type;
+
+		//exit(json_encode($where));
 		$count = self::where($where)->count();
 		$list =  self::where($where)->order('check_date','desc')->order('check_date', 'asc')->select();
 		return [$list, $count];

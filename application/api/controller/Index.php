@@ -275,6 +275,7 @@ class Index extends BaseController
 
             $type = 3;
         } elseif (intval($delta/(60*60*24))>=1) {
+            // 按天算
             $type = 2;
         } elseif (intval($delta/(60*60))>=1) {
             $type = 1;
@@ -1328,7 +1329,7 @@ class Index extends BaseController
         $later = date("Y-m-d H:0:0", time());
         $hour = date("H", time());
         $hour_1 = $hour -1;
-        $earlier = date("Y-m-d {$hour_1}:0:0", time());
+        $earlier = date("Y-m-d H:0:0", strtotime($later)-60*60);
 
         $result = ConsumePerOrder::createRecord(null, $earlier, $later, 1);
          return $this->ajaxSuccess("get shift record success", $this->getReturn($result, 0));
@@ -1340,8 +1341,20 @@ class Index extends BaseController
      */
     public function cronDailyOrderTrend()
     {
-        $later = date("Y-m-d 0:0:0", time());
-        $earlier = date("Y-m-d H:0:0", strtotime($later)-60*60*24);
+        $later = date("Y-m-d 23:59:59", time());
+
+        if(strtotime($later)> time()){
+            // 取昨天的23:59:59
+            $later = date("Y-m-d 0:0:0", time());
+            $later = date("Y-m-d 23:59:59", strtotime($later)-5);
+        } else {
+            $later = $later;
+        }
+
+
+        $earlier = date("Y-m-d H:i:s", strtotime($later)-60*60*24);
+
+        //exit("earlier {$earlier}  later {$later}");
         
         $result = ConsumePerOrder::createRecord(null, $earlier, $later, 2);
          return $this->ajaxSuccess("get shift record success", $this->getReturn($result, 0));
