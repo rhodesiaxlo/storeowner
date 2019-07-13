@@ -364,8 +364,6 @@ class Index extends BaseController
                 
                 $end_date = $now_end;
                 $start_date = $now_start; 
-
-
             }
         }
 
@@ -396,7 +394,7 @@ class Index extends BaseController
         {
             return $this->ajaxFail("is_order_by_money field can not be empty", [], 1002);
         }
-        exit("start_date {$start_date} end _date = {$end_date}");
+        //exit("start_date {$start_date} end _date = {$end_date}");
 
         // get customer filter 
         $this->getCustomFilter(['type','start_date','end_date','is_today','is_yesterday','is_week','is_month','is_order_by_money']);
