@@ -215,7 +215,6 @@ class ConsumePerOrder extends Model
 		$where['code'] = $type;
 		$count = self::where($where)->count();
 		$list =  self::where($where)->order('check_date','desc')->order('check_date', 'asc')->select();
-		exit(json_encode($list));
 		return [$list, $count];
 	}
 
