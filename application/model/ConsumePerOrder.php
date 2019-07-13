@@ -71,13 +71,15 @@ class ConsumePerOrder extends Model
 					   ->order('revenue','desc')
 					   ->select();
 
+			$revenue = Order::where(['store_code'=>$value['store_code'], 'create_time'=>['between',strval(strtotime($earlier)*1000).",".strval(strtotime($later)*1000)],'status'=>1])->sum('receivable_price');
+
 
 			$new_rec = new ConsumePerOrder();
 			$new_rec->code = $type;//小时级
 			$new_rec->store_code = $value['store_code'];
 			$new_rec->check_date = $earlier;
 			$new_rec->sales = $money_list[0]['sales']?$money_list[0]['sales']:0;
-			$new_rec->revenue = $money_list[0]['revenue']?$money_list[0]['revenue']:0;
+			$new_rec->revenue = $revenue;
 			$new_rec->order_no = $money_list[0]['order_number']?$money_list[0]['order_number']:0;
 			$new_rec->goods_num = $money_list[0]['goods_number']?$money_list[0]['goods_number']:0;
 			$new_rec->cost_basic = $money_list[0]['cost_basic']?$money_list[0]['cost_basic']:0;
@@ -219,6 +221,12 @@ class ConsumePerOrder extends Model
 		//exit(json_encode($where));
 		$count = self::where($where)->count();
 		$list =  self::where($where)->order('check_date','desc')->order('check_date', 'asc')->select();
+
+		if($type=2){
+			foreach ($list as $key => $value) {
+				$list[$key]['check_date'] = date("Y-m-d", strtotime($value['check_date'])+60*60*24);
+			}
+		}
 		return [$list, $count];
 	}
 

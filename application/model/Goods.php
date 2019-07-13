@@ -31,7 +31,7 @@ class Goods extends Model
 			$where['goods_sn'] = array("like", "%".$barcode."%");;
 		}
 
-		//$where['goods_name'] = array("notlike", "%无码商品%");
+		$where['goods_name'] = array("notlike", "%无码商品%");
 		if(!empty($goods_name))
 		{
 			$where['goods_name'] = array("like", "%".$goods_name."%");
@@ -47,6 +47,7 @@ class Goods extends Model
 			$where['type'] = $type2;
 		}
 
+		//exit(json_encode($where));
 
 		$where['deleted'] = 0;
 
@@ -84,6 +85,8 @@ class Goods extends Model
 		{
 			$where['is_forsale'] = $is_forsale;;
 		}
+
+		$where['deleted'] = 0;
 
 
 
